@@ -59,6 +59,8 @@ builder.Services.AddScoped<CvManagement.Services.Markdown.IMarkdownRenderer, CvM
 builder.Services.AddScoped<CvManagement.Services.Positions.IPositionService, CvManagement.Services.Positions.PositionService>();
 builder.Services.AddScoped<CvManagement.Services.Projects.IProjectService, CvManagement.Services.Projects.ProjectService>();
 builder.Services.AddScoped<CvManagement.Services.Cv.ICvService, CvManagement.Services.Cv.CvService>();
+builder.Services.AddScoped<CvManagement.Services.Likes.ILikeService, CvManagement.Services.Likes.LikeService>();
+builder.Services.AddScoped<CvManagement.Services.Search.ISearchService, CvManagement.Services.Search.SearchService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 

@@ -21,7 +21,7 @@ else
         </div>
         <div class="d-flex gap-2 align-items-center">
             <span class="badge @(_cv.Status == CvStatus.Published ? "bg-success" : "bg-warning") fs-6">@_cv.Status</span>
-            <span class="badge bg-secondary fs-6">@_cv.LikeCount likes</span>
+            <LikeButton CvRecordId="_cv.Id" />
         </div>
     </div>
 

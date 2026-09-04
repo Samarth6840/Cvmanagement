@@ -1,0 +1,45 @@
+@using CvManagement.Services.Likes
+@using CvManagement.Services.Auth
+@inject ILikeService LikeService
+@inject ICurrentUserService CurrentUserService
+@rendermode InteractiveServer
+
+@if (_isRecruiter)
+{
+    <button class="btn btn-sm @(_isLiked ? "btn-danger" : "btn-outline-secondary")" @onclick="Toggle">
+        @(_isLiked ? "♥" : "♡") @_likeCount
+    </button>
+}
+
+@code {
+    [Parameter] public Guid CvRecordId { get; set; }
+    [Parameter] public EventCallback<int> LikeCountChanged { get; set; }
+
+    private bool _isLiked;
+    private int _likeCount;
+    private bool _isRecruiter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
+        if (_isRecruiter)
+        {
+            var userId = await CurrentUserService.GetUserIdAsync();
+            if (userId is not null)
+            {
+                _isLiked = await LikeService.HasUserLikedAsync(userId.Value, CvRecordId);
+            }
+            _likeCount = await LikeService.GetLikeCountAsync(CvRecordId);
+        }
+    }
+
+    private async Task Toggle()
+    {
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        _isLiked = await LikeService.ToggleAsync(userId.Value, CvRecordId);
+        _likeCount = await LikeService.GetLikeCountAsync(CvRecordId);
+        await LikeCountChanged.InvokeAsync(_likeCount);
+    }
+}

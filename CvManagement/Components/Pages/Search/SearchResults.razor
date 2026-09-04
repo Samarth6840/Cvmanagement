@@ -1,0 +1,69 @@
+@page "/search"
+@using CvManagement.Services.Search
+@inject ISearchService SearchService
+@rendermode InteractiveServer
+
+<h3>Search Results</h3>
+
+@if (!string.IsNullOrEmpty(_query))
+{
+    <p class="text-muted mb-3">Results for "<strong>@_query</strong>": @_results.Count found</p>
+}
+
+@if (_loading)
+{
+    <p>Searching...</p>
+}
+else if (_results.Any())
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in _results)
+            {
+                <tr>
+                    <td><span class="badge @(result.Type == "Position" ? "bg-primary" : "bg-success")">@result.Type</span></td>
+                    <td>
+                        @if (result.Type == "Position")
+                        {
+                            <a href="/positions/@result.Id">@result.Title</a>
+                        }
+                        else
+                        {
+                            <a href="/cvs/@result.Id">@result.Title</a>
+                        }
+                    </td>
+                    <td class="text-muted small">@result.Subtitle</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (!string.IsNullOrEmpty(_query))
+{
+    <p class="text-muted">No results found.</p>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")]
+    private string? _query { get; set; }
+
+    private List<SearchResult> _results = new();
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_query))
+        {
+            _loading = true;
+            _results = await SearchService.SearchAsync(_query!);
+            _loading = false;
+        }
+    }
+}

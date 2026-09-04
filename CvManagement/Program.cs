@@ -61,6 +61,7 @@ builder.Services.AddScoped<CvManagement.Services.Projects.IProjectService, CvMan
 builder.Services.AddScoped<CvManagement.Services.Cv.ICvService, CvManagement.Services.Cv.CvService>();
 builder.Services.AddScoped<CvManagement.Services.Likes.ILikeService, CvManagement.Services.Likes.LikeService>();
 builder.Services.AddScoped<CvManagement.Services.Search.ISearchService, CvManagement.Services.Search.SearchService>();
+builder.Services.AddScoped<CvManagement.Services.Discussions.IDiscussionService, CvManagement.Services.Discussions.DiscussionService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -88,6 +89,8 @@ app.UseAuthorization();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(typeof(Program).Assembly);
+
+app.MapHub<CvManagement.Hubs.DiscussionHub>("/hubs/discussion");
 
 using (var scope = app.Services.CreateScope())
 {

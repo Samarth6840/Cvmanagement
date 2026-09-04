@@ -1,0 +1,94 @@
+@using CvManagement.Services.Discussions
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Markdown
+@using CvManagement.Data.Entities.Discussions
+@using CvManagement.Hubs
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IDiscussionService DiscussionService
+@inject ICurrentUserService CurrentUserService
+@inject IMarkdownRenderer MarkdownRenderer
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Discussion</h5>
+        <span class="badge bg-secondary">@_messages.Count messages</span>
+    </div>
+    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+        @if (_messages.Any())
+        {
+            @foreach (var msg in _messages)
+            {
+                <div class="mb-3 p-2 rounded" style="background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);">
+                    <div class="d-flex justify-content-between">
+                        <strong>@msg.User?.DisplayName</strong>
+                        <small class="text-muted">@msg.CreatedAt.ToString("MMM dd, HH:mm")</small>
+                    </div>
+                    <MarkdownPreview Markdown="@msg.Content" />
+                </div>
+            }
+        }
+        else
+        {
+            <p class="text-muted">No messages yet. Start the discussion!</p>
+        }
+    </div>
+    <div class="card-footer">
+        <div class="input-group">
+            <textarea class="form-control" rows="2" placeholder="Write a message..." @bind="_newMessage" @onkeydown="HandleKeyDown"></textarea>
+            <button class="btn btn-primary" @onclick="Send" disabled="@(string.IsNullOrWhiteSpace(_newMessage) || !_connected)">Send</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid PositionId { get; set; }
+
+    private List<DiscussionMessage> _messages = new();
+    private HubConnection? _hubConnection;
+    private string _newMessage = "";
+    private bool _connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _messages = await DiscussionService.GetMessagesAsync(PositionId);
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hubs/discussion"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<DiscussionMessage>("ReceiveMessage", message =>
+        {
+            _messages.Add(message);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+        await _hubConnection.InvokeAsync("JoinGroup", PositionId);
+        _connected = true;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            _ = Send();
+        }
+    }
+
+    private async Task Send()
+    {
+        if (_hubConnection is null || string.IsNullOrWhiteSpace(_newMessage)) return;
+
+        await _hubConnection.InvokeAsync("SendMessage", PositionId, _newMessage);
+        _newMessage = "";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+    }
+}

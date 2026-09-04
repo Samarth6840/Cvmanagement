@@ -1,0 +1,71 @@
+@page "/login"
+@using Microsoft.AspNetCore.Identity
+@using CvManagement.Data.Entities.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@layout AuthLayout
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <h3 class="card-title text-center mb-4">Sign In</h3>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">@ErrorMessage</div>
+        }
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input name="Email" type="email" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input name="Password" type="password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
+        </form>
+
+        <hr />
+        <p class="text-center text-muted mb-3">Or sign in with</p>
+
+        <form method="post" asp-page="/Auth/Login" asp-page-handler="ExternalLogin" asp-route-provider="Google">
+            <button type="submit" class="btn btn-outline-danger w-100 mb-2">
+                Google
+            </button>
+        </form>
+        <form method="post" asp-page="/Auth/Login" asp-page-handler="ExternalLogin" asp-route-provider="GitHub">
+            <button type="submit" class="btn btn-outline-dark w-100">
+                GitHub
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/register">Create an account</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public string Email { get; set; } = "";
+
+    [SupplyParameterFromForm]
+    public string Password { get; set; } = "";
+
+    private string? ErrorMessage;
+
+    private async Task HandleLogin()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Email, Password, true, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            ErrorMessage = "Invalid email or password.";
+        }
+    }
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+}

@@ -1,30 +1,102 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">CvManagement</a>
-    </div>
-</div>
+﻿@using CvManagement.Services.Auth
+@inject ICurrentUserService CurrentUser
+@rendermode InteractiveServer
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<ul class="nav flex-column">
+    <li class="nav-item">
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5V7.5a.5.5 0 0 0-.146-.354l-6-6z"/>
+            </svg>
+            Home
+        </NavLink>
+    </li>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+    @if (_isCandidate || _isAdmin)
+    {
+        <li class="nav-item">
+            <NavLink class="nav-link" href="profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H4s-1 0-1-1 1-4 6-4 6 3 6 4z"/>
+                </svg>
+                My Profile
             </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="cvs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M4 0h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4z"/>
+                </svg>
+                My CVs
             </NavLink>
-        </div>
+        </li>
+    }
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+    @if (_isRecruiter || _isAdmin)
+    {
+        <li class="nav-item mt-2">
+            <span class="nav-link text-muted small text-uppercase fw-bold">Recruiter</span>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="attributes">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M2 2v4.586l7 7L13.586 9l-7-7H2zM1 2a1 1 0 0 1 1-1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2z"/>
+                </svg>
+                Attributes
             </NavLink>
-        </div>
-    </nav>
-</div>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="positions">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M1 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V2zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7zM1 12a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-2zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-2z"/>
+                </svg>
+                Positions
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="projects">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12A1.5 1.5 0 0 0 8.62 4H13.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z"/>
+                </svg>
+                Projects
+            </NavLink>
+        </li>
+    }
 
+    @if (_isAdmin)
+    {
+        <li class="nav-item mt-2">
+            <span class="nav-link text-muted small text-uppercase fw-bold">Admin</span>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="admin">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+                </svg>
+                Dashboard
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link" href="admin/users">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    <path fill-rule="evenodd" d="M5.214 14a2.238 2.238 0 0 1-2.22-2.55l1.224-1.224a.317.317 0 0 1 .239-.11 4.28 4.28 0 0 0 2.94-.175A2.168 2.168 0 0 1 7 12a2.168 2.168 0 0 1 2.944-.175.317.317 0 0 1 .239.11l1.224 1.224A2.238 2.238 0 0 1 13.786 14H5.214z"/>
+                </svg>
+                Users
+            </NavLink>
+        </li>
+    }
+</ul>
+
+@code {
+    private bool _isCandidate;
+    private bool _isRecruiter;
+    private bool _isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isCandidate = await CurrentUser.IsInRoleAsync("Candidate");
+        _isRecruiter = await CurrentUser.IsInRoleAsync("Recruiter");
+        _isAdmin = await CurrentUser.IsInRoleAsync("Administrator");
+    }
+}

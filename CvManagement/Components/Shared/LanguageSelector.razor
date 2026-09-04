@@ -1,0 +1,37 @@
+@rendermode InteractiveServer
+@using CvManagement.Services.Auth
+@inject ICurrentUserService CurrentUser
+
+<div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        @_currentLang.ToUpperInvariant()
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+            <button class="dropdown-item @(_currentLang == "en" ? "active" : "")"
+                    @onclick="SetLangEn">English</button>
+        </li>
+        <li>
+            <button class="dropdown-item @(_currentLang == "pl" ? "active" : "")"
+                    @onclick="SetLangPl">Polski</button>
+        </li>
+    </ul>
+</div>
+
+@code {
+    private string _currentLang = "en";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentLang = await CurrentUser.GetPreferredLanguageAsync();
+    }
+
+    private async Task SetLangEn() => await SetLanguage("en");
+    private async Task SetLangPl() => await SetLanguage("pl");
+
+    private async Task SetLanguage(string lang)
+    {
+        _currentLang = lang;
+        StateHasChanged();
+    }
+}

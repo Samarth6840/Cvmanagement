@@ -1,0 +1,53 @@
+@using CvManagement.Services.Auth
+@inject ICurrentUserService CurrentUser
+@rendermode InteractiveServer
+
+<nav class="topbar navbar navbar-expand-lg sticky-top px-3 py-2">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="/">CV Manager</a>
+
+        <div class="d-none d-md-flex flex-grow-1 mx-4" style="max-width: 400px;">
+            <SearchBar />
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <ThemeToggle />
+            <LanguageSelector />
+
+            @if (CurrentUser.IsAuthenticated)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        @(_displayName ?? "User")
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                        <li><a class="dropdown-item" href="/cvs">My CVs</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form method="post" action="/logout">
+                                <button type="submit" class="dropdown-item">Sign Out</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <a href="/login" class="btn btn-sm btn-primary">Sign In</a>
+            }
+        </div>
+    </div>
+</nav>
+
+@code {
+    private string? _displayName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CurrentUser.IsAuthenticated)
+        {
+            _displayName = await CurrentUser.GetUserDisplayNameAsync();
+        }
+    }
+}

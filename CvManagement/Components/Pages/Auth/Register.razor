@@ -1,0 +1,102 @@
+@page "/register"
+@using Microsoft.AspNetCore.Identity
+@using CvManagement.Data.Entities.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@layout AuthLayout
+
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        <h3 class="card-title text-center mb-4">Create Account</h3>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">@ErrorMessage</div>
+        }
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Display Name</label>
+                <input name="DisplayName" type="text" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input name="Email" type="email" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input name="Password" type="password" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirm Password</label>
+                <input name="ConfirmPassword" type="password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+
+        <hr />
+        <p class="text-center text-muted mb-3">Or register with</p>
+
+        <form method="post" asp-page="/Auth/Register" asp-page-handler="ExternalLogin" asp-route-provider="Google">
+            <button type="submit" class="btn btn-outline-danger w-100 mb-2">
+                Google
+            </button>
+        </form>
+        <form method="post" asp-page="/Auth/Register" asp-page-handler="ExternalLogin" asp-route-provider="GitHub">
+            <button type="submit" class="btn btn-outline-dark w-100">
+                GitHub
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/login">Already have an account? Sign in</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public string DisplayName { get; set; } = "";
+
+    [SupplyParameterFromForm]
+    public string Email { get; set; } = "";
+
+    [SupplyParameterFromForm]
+    public string Password { get; set; } = "";
+
+    [SupplyParameterFromForm]
+    public string ConfirmPassword { get; set; } = "";
+
+    private string? ErrorMessage;
+
+    private async Task HandleRegister()
+    {
+        if (Password != ConfirmPassword)
+        {
+            ErrorMessage = "Passwords do not match.";
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = Email,
+            Email = Email,
+            DisplayName = DisplayName,
+            EmailConfirmed = true
+        };
+
+        var result = await UserManager.CreateAsync(user, Password);
+        if (result.Succeeded)
+        {
+            await UserManager.AddToRoleAsync(user, "Candidate");
+            await SignInManager.SignInAsync(user, isPersistent: true);
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            ErrorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+}

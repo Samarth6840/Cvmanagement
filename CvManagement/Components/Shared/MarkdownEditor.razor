@@ -1,0 +1,22 @@
+@rendermode InteractiveServer
+
+<div class="mb-3">
+    <label class="form-label">@Label</label>
+    <div id="@_editorId"></div>
+    <textarea id="@_textareaId" class="d-none" value="@Value" @onchange="HandleChange"></textarea>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Content";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private string _editorId = $"easymde-{Guid.NewGuid():N}";
+    private string _textareaId = $"textarea-{Guid.NewGuid():N}";
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString();
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

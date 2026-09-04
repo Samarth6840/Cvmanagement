@@ -52,6 +52,11 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddScoped<CvManagement.Services.Auth.ICurrentUserService, CvManagement.Services.Auth.CurrentUserService>();
+builder.Services.AddScoped<CvManagement.Services.Attributes.IAttributeService, CvManagement.Services.Attributes.AttributeService>();
+builder.Services.AddScoped<CvManagement.Services.Profiles.IProfileService, CvManagement.Services.Profiles.ProfileService>();
+builder.Services.AddScoped<CvManagement.Services.Markdown.IMarkdownRenderer, CvManagement.Services.Markdown.MarkdownRenderer>();
+
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 builder.Services.AddSignalR();

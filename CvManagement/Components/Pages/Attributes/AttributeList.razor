@@ -1,0 +1,96 @@
+@page "/attributes"
+@using CvManagement.Services.Attributes
+@using CvManagement.Data.Entities.Attributes
+@attribute [Authorize(Policy = "RecruiterOnly")]
+@inject IAttributeService AttributeService
+@rendermode InteractiveServer
+
+<h3>Attribute Library</h3>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <input type="text" class="form-control form-control-sm" placeholder="Search attributes..." @bind="_searchPrefix" @bind:event="oninput" @onkeydown="HandleSearchKey" />
+        <select class="form-select form-select-sm" style="width: auto;" @onchange="OnCategoryChanged">
+            <option value="">All Categories</option>
+            @foreach (var cat in Enum.GetValues<AttributeCategory>())
+            {
+                <option value="@cat">@cat</option>
+            }
+        </select>
+    </div>
+    <a href="/attributes/edit" class="btn btn-primary btn-sm">Create Attribute</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Data Type</th>
+            <th>Required</th>
+            <th style="width: 120px;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var attr in _filteredAttributes)
+        {
+            <tr>
+                <td>@attr.Name</td>
+                <td>@attr.Category</td>
+                <td>@attr.DataType</td>
+                <td>@(attr.IsRequired ? "Yes" : "No")</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="/attributes/edit/@attr.Id" class="btn btn-outline-primary">Edit</a>
+                        <button class="btn btn-outline-danger" @onclick="() => DeleteAttribute(attr)">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_filteredAttributes.Any())
+{
+    <p class="text-muted">No attributes found.</p>
+}
+
+@code {
+    private List<AttributeDefinition> _allAttributes = new();
+    private List<AttributeDefinition> _filteredAttributes = new();
+    private string _searchPrefix = "";
+    private string _selectedCategory = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allAttributes = await AttributeService.GetAllAsync();
+        _filteredAttributes = _allAttributes;
+    }
+
+    private void Search()
+    {
+        _filteredAttributes = _allAttributes
+            .Where(a => string.IsNullOrEmpty(_searchPrefix) || a.Name.Contains(_searchPrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(a => string.IsNullOrEmpty(_selectedCategory) || a.Category.ToString() == _selectedCategory)
+            .ToList();
+    }
+
+    private void HandleSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Search();
+    }
+
+    private void OnCategoryChanged(ChangeEventArgs e)
+    {
+        _selectedCategory = e.Value?.ToString() ?? "";
+        Search();
+    }
+
+    private async Task DeleteAttribute(AttributeDefinition attr)
+    {
+        await AttributeService.DeleteAsync(attr.Id);
+        _allAttributes.Remove(attr);
+        Search();
+    }
+}

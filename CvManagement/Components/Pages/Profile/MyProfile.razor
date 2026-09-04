@@ -1,0 +1,273 @@
+@page "/profile"
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Profiles
+@using CvManagement.Services.Attributes
+@using CvManagement.Data
+@using CvManagement.Data.Entities.Profiles
+@using CvManagement.Data.Entities.Attributes
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ICurrentUserService CurrentUserService
+@inject IProfileService ProfileService
+@inject IAttributeService AttributeService
+@inject CvDbContext DbContext
+@rendermode InteractiveServer
+
+<h3>My Profile</h3>
+
+@if (_profile is null || _allAttributes is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @if (_isSaving)
+    {
+        <div class="alert alert-info">Saving...</div>
+    }
+    @if (_conflictMessage is not null)
+    {
+        <div class="alert alert-warning">@_conflictMessage <button class="btn btn-sm btn-warning ms-2" @onclick="Reload">Reload</button></div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Me</h5></div>
+        <div class="card-body">
+            @foreach (var attr in _builtinAttributes)
+            {
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@attr.Name</label>
+                    @{
+                        var value = GetValue(attr.Id);
+                    }
+                    <AttributeValueEditor Attribute="attr" Options="attr.Options.ToList()"
+                        StringValue="@(value?.StringValue)"
+                        StringValueChanged="v => UpdateValue(attr.Id, AttributeDataType.String, stringValue: v)"
+                        ImageUrl="@(value?.ImageUrl)"
+                        ImageUrlChanged="v => UpdateValue(attr.Id, AttributeDataType.Image, imageUrl: v)"
+                        NumericValue="@(value?.NumericValue)"
+                        NumericValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Numeric, numericValue: v)"
+                        DateValue="@(value?.DateValue)"
+                        DateValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Date, dateValue: v)"
+                        BoolValue="@(value?.BoolValue)"
+                        BoolValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Boolean, boolValue: v)" />
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Info</h5>
+            <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddAttributeModal">+ Add Attribute</button>
+        </div>
+        <div class="card-body">
+            @foreach (var attr in _infoAttributes)
+            {
+                <div class="mb-3">
+                    <label class="form-label fw-bold">@attr.Name</label>
+                    @{
+                        var value = GetValue(attr.Id);
+                    }
+                    <AttributeValueEditor Attribute="attr" Options="attr.Options.ToList()"
+                        StringValue="@(value?.StringValue)"
+                        StringValueChanged="v => UpdateValue(attr.Id, AttributeDataType.String, stringValue: v)"
+                        TextValue="@(value?.TextValue)"
+                        TextValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Text, textValue: v)"
+                        ImageUrl="@(value?.ImageUrl)"
+                        ImageUrlChanged="v => UpdateValue(attr.Id, AttributeDataType.Image, imageUrl: v)"
+                        NumericValue="@(value?.NumericValue)"
+                        NumericValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Numeric, numericValue: v)"
+                        DateValue="@(value?.DateValue)"
+                        DateValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Date, dateValue: v)"
+                        PeriodStart="@(value?.PeriodStart)"
+                        PeriodStartChanged="v => UpdateValue(attr.Id, AttributeDataType.Period, periodStart: v)"
+                        PeriodEnd="@(value?.PeriodEnd)"
+                        PeriodEndChanged="v => UpdateValue(attr.Id, AttributeDataType.Period, periodEnd: v)"
+                        BoolValue="@(value?.BoolValue)"
+                        BoolValueChanged="v => UpdateValue(attr.Id, AttributeDataType.Boolean, boolValue: v)"
+                        SelectedOptionId="@(value?.SelectedOptionId)"
+                        SelectedOptionIdChanged="v => UpdateValue(attr.Id, AttributeDataType.OneOfMany, selectedOptionId: v)" />
+                    <button class="btn btn-sm btn-outline-danger mt-1" @onclick="() => RemoveInfoAttribute(attr)">Remove</button>
+                </div>
+            }
+            @if (!_infoAttributes.Any())
+            {
+                <p class="text-muted">No info attributes added yet.</p>
+            }
+        </div>
+    </div>
+
+    @if (_showAddModal)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Attribute</h5>
+                        <button type="button" class="btn-close" @onclick="() => _showAddModal = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control mb-2" placeholder="Search attributes..." @bind="_attrSearchPrefix" @bind:event="oninput" />
+                        @foreach (var attr in _availableAttributes.Where(a => a.Name.Contains(_attrSearchPrefix, StringComparison.OrdinalIgnoreCase)).Take(10))
+                        {
+                            <button class="list-group-item list-group-item-action" @onclick="() => AddInfoAttribute(attr)">@attr.Name <small class="text-muted">(@attr.Category)</small></button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private CandidateProfile? _profile;
+    private List<AttributeDefinition>? _allAttributes;
+    private List<AttributeDefinition> _builtinAttributes = new();
+    private List<AttributeDefinition> _infoAttributes = new();
+    private Dictionary<Guid, ProfileAttributeValue> _values = new();
+    private bool _isSaving;
+    private string? _conflictMessage;
+    private bool _showAddModal;
+    private string _attrSearchPrefix = "";
+    private List<AttributeDefinition> _availableAttributes = new();
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _cts;
+    private bool _isDirty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        _profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+        _allAttributes = (await AttributeService.GetAllAsync()).ToList();
+
+        // Built-in: PersonalInformation category (First Name, Last Name, Location, Photo)
+        _builtinAttributes = _allAttributes.Where(a => a.Category == AttributeCategory.PersonalInformation).ToList();
+
+        // Info: attributes the user has added to their profile
+        var profileAttrIds = _profile.AttributeValues.Select(v => v.AttributeDefinitionId).ToHashSet();
+        _infoAttributes = _allAttributes.Where(a => profileAttrIds.Contains(a.Id) && a.Category != AttributeCategory.PersonalInformation).ToList();
+
+        _values = _profile.AttributeValues.ToDictionary(v => v.AttributeDefinitionId);
+
+        // Available attributes for adding (not already in profile)
+        _availableAttributes = _allAttributes.Where(a => !profileAttrIds.Contains(a.Id)).ToList();
+
+        // Start auto-save timer
+        _cts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        _ = AutoSaveLoop(_cts.Token);
+    }
+
+    private async Task AutoSaveLoop(CancellationToken ct)
+    {
+        try
+        {
+            while (await _timer!.WaitForNextTickAsync(ct))
+            {
+                if (_isDirty)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        _isSaving = true;
+                        StateHasChanged();
+
+                        try
+                        {
+                            await DbContext.SaveChangesAsync();
+                            _isDirty = false;
+                            _conflictMessage = null;
+                        }
+                        catch (DbUpdateConcurrencyException)
+                        {
+                            _conflictMessage = "Conflict detected. Someone else modified this data. Please reload.";
+                        }
+                        finally
+                        {
+                            _isSaving = false;
+                            StateHasChanged();
+                        }
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private ProfileAttributeValue? GetValue(Guid attributeId) =>
+        _values.TryGetValue(attributeId, out var val) ? val : null;
+
+    private void UpdateValue(Guid attributeId, AttributeDataType type,
+        string? stringValue = null, string? textValue = null, string? imageUrl = null,
+        decimal? numericValue = null, DateTime? dateValue = null,
+        DateTime? periodStart = null, DateTime? periodEnd = null,
+        bool? boolValue = null, Guid? selectedOptionId = null)
+    {
+        if (_profile is null) return;
+
+        if (!_values.TryGetValue(attributeId, out var existing))
+        {
+            existing = new ProfileAttributeValue
+            {
+                CandidateProfileId = _profile.Id,
+                AttributeDefinitionId = attributeId
+            };
+            _values[attributeId] = existing;
+        }
+
+        switch (type)
+        {
+            case AttributeDataType.String: existing.StringValue = stringValue; break;
+            case AttributeDataType.Text: existing.TextValue = textValue; break;
+            case AttributeDataType.Image: existing.ImageUrl = imageUrl; break;
+            case AttributeDataType.Numeric: existing.NumericValue = numericValue; break;
+            case AttributeDataType.Date: existing.DateValue = dateValue; break;
+            case AttributeDataType.Boolean: existing.BoolValue = boolValue; break;
+            case AttributeDataType.OneOfMany: existing.SelectedOptionId = selectedOptionId; break;
+            case AttributeDataType.Period:
+                if (periodStart.HasValue) existing.PeriodStart = periodStart;
+                if (periodEnd.HasValue) existing.PeriodEnd = periodEnd;
+                break;
+        }
+
+        _isDirty = true;
+    }
+
+    private void ShowAddAttributeModal() => _showAddModal = true;
+
+    private void AddInfoAttribute(AttributeDefinition attr)
+    {
+        _infoAttributes.Add(attr);
+        _availableAttributes.Remove(attr);
+        _showAddModal = false;
+    }
+
+    private void RemoveInfoAttribute(AttributeDefinition attr)
+    {
+        _infoAttributes.Remove(attr);
+        _availableAttributes.Add(attr);
+        _values.Remove(attr.Id);
+        _isDirty = true;
+    }
+
+    private async Task Reload()
+    {
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        _profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+        _values = _profile.AttributeValues.ToDictionary(v => v.AttributeDefinitionId);
+        _conflictMessage = null;
+        _isDirty = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _timer?.Dispose();
+    }
+}

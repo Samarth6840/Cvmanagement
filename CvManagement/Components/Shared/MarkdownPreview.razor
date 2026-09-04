@@ -1,0 +1,18 @@
+@using CvManagement.Services.Markdown
+@inject IMarkdownRenderer MarkdownRenderer
+
+@if (!string.IsNullOrEmpty(HtmlContent))
+{
+    @((MarkupString)HtmlContent)
+}
+
+@code {
+    [Parameter] public string? Markdown { get; set; }
+
+    private string? HtmlContent;
+
+    protected override void OnParametersSet()
+    {
+        HtmlContent = MarkdownRenderer.ToHtml(Markdown ?? "");
+    }
+}

@@ -1,0 +1,124 @@
+@page "/attributes/edit/{Id?}"
+@using CvManagement.Services.Attributes
+@using CvManagement.Data.Entities.Attributes
+@attribute [Authorize(Policy = "RecruiterOnly")]
+@inject IAttributeService AttributeService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>@(_isNew ? "Create Attribute" : "Edit Attribute")</h3>
+
+@if (_attribute is not null)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" @bind="_attribute.Name" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" @bind="_attribute.Category">
+                        @foreach (var cat in Enum.GetValues<AttributeCategory>())
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Data Type</label>
+                    <select class="form-select" @bind="_attribute.DataType">
+                        @foreach (var dt in Enum.GetValues<AttributeDataType>())
+                        {
+                            <option value="@dt">@dt</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" rows="2" @bind="_attribute.Description"></textarea>
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" @bind="_attribute.IsRequired" />
+                    <label class="form-check-label">Required for CV publishing</label>
+                </div>
+            </div>
+
+            @if (_attribute.DataType == AttributeDataType.OneOfMany)
+            {
+                <hr />
+                <h5>Options</h5>
+                <div class="d-flex gap-2 mb-2">
+                    <input type="text" class="form-control form-control-sm" placeholder="New option label" @bind="_newOptionLabel" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="AddOption">Add</button>
+                </div>
+                @foreach (var opt in _options)
+                {
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span>@opt.Label</span>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveOption(opt)">Remove</button>
+                    </div>
+                }
+            }
+
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-primary" @onclick="Save">Save</button>
+                <a href="/attributes" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    private AttributeDefinition? _attribute;
+    private List<AttributeOption> _options = new();
+    private bool _isNew;
+    private string _newOptionLabel = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Id) || Id == "new")
+        {
+            _isNew = true;
+            _attribute = new AttributeDefinition();
+        }
+        else
+        {
+            _attribute = await AttributeService.GetByIdAsync(Guid.Parse(Id));
+            if (_attribute is not null)
+                _options = await AttributeService.GetOptionsAsync(_attribute.Id);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_attribute is null) return;
+
+        if (_isNew)
+            await AttributeService.CreateAsync(_attribute);
+        else
+            await AttributeService.UpdateAsync(_attribute.Id, _attribute);
+
+        Navigation.NavigateTo("/attributes");
+    }
+
+    private async Task AddOption()
+    {
+        if (_attribute is null || string.IsNullOrWhiteSpace(_newOptionLabel)) return;
+        var opt = await AttributeService.AddOptionAsync(_attribute.Id, _newOptionLabel);
+        _options.Add(opt);
+        _newOptionLabel = "";
+    }
+
+    private async Task RemoveOption(AttributeOption opt)
+    {
+        if (_attribute is null) return;
+        await AttributeService.RemoveOptionAsync(_attribute.Id, opt.Id);
+        _options.Remove(opt);
+    }
+}

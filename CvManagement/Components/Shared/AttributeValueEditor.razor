@@ -1,0 +1,140 @@
+@using CvManagement.Data.Entities.Attributes
+
+@if (Attribute is not null)
+{
+    switch (Attribute.DataType)
+    {
+        case AttributeDataType.String:
+            <input type="text" class="form-control" value="@StringValue" @onchange="OnStringChanged" />
+            break;
+
+        case AttributeDataType.Text:
+            <textarea class="form-control" rows="4" value="@TextValue" @onchange="OnTextChanged"></textarea>
+            break;
+
+        case AttributeDataType.Image:
+            <div>
+                @if (!string.IsNullOrEmpty(ImageUrl))
+                {
+                    <img src="@ImageUrl" class="img-thumbnail mb-2" style="max-height: 120px;" />
+                }
+                <input type="text" class="form-control" placeholder="Image URL" value="@ImageUrl" @onchange="OnImageChanged" />
+            </div>
+            break;
+
+        case AttributeDataType.Numeric:
+            <input type="number" step="0.01" class="form-control" value="@NumericValue" @onchange="OnNumericChanged" />
+            break;
+
+        case AttributeDataType.Date:
+            <input type="date" class="form-control" value="@(DateValue?.ToString("yyyy-MM-dd"))" @onchange="OnDateChanged" />
+            break;
+
+        case AttributeDataType.Period:
+            <div class="d-flex gap-2">
+                <input type="date" class="form-control" value="@(PeriodStart?.ToString("yyyy-MM-dd"))" @onchange="OnPeriodStartChanged" placeholder="Start" />
+                <input type="date" class="form-control" value="@(PeriodEnd?.ToString("yyyy-MM-dd"))" @onchange="OnPeriodEndChanged" placeholder="End" />
+            </div>
+            break;
+
+        case AttributeDataType.Boolean:
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" checked="@BoolValue" @onchange="OnBoolChanged" />
+                <label class="form-check-label">Yes</label>
+            </div>
+            break;
+
+        case AttributeDataType.OneOfMany:
+            <select class="form-select" @onchange="OnOptionChanged">
+                <option value="">-- Select --</option>
+                @if (Options is not null)
+                {
+                    @foreach (var opt in Options)
+                    {
+                        <option value="@opt.Id" selected="@(opt.Id == SelectedOptionId)">@opt.Label</option>
+                    }
+                }
+            </select>
+            break;
+    }
+}
+
+@code {
+    [Parameter] public AttributeDefinition? Attribute { get; set; }
+    [Parameter] public List<AttributeOption>? Options { get; set; }
+
+    [Parameter] public string? StringValue { get; set; }
+    [Parameter] public EventCallback<string?> StringValueChanged { get; set; }
+
+    [Parameter] public string? TextValue { get; set; }
+    [Parameter] public EventCallback<string?> TextValueChanged { get; set; }
+
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public EventCallback<string?> ImageUrlChanged { get; set; }
+
+    [Parameter] public decimal? NumericValue { get; set; }
+    [Parameter] public EventCallback<decimal?> NumericValueChanged { get; set; }
+
+    [Parameter] public DateTime? DateValue { get; set; }
+    [Parameter] public EventCallback<DateTime?> DateValueChanged { get; set; }
+
+    [Parameter] public DateTime? PeriodStart { get; set; }
+    [Parameter] public EventCallback<DateTime?> PeriodStartChanged { get; set; }
+
+    [Parameter] public DateTime? PeriodEnd { get; set; }
+    [Parameter] public EventCallback<DateTime?> PeriodEndChanged { get; set; }
+
+    [Parameter] public bool? BoolValue { get; set; }
+    [Parameter] public EventCallback<bool?> BoolValueChanged { get; set; }
+
+    [Parameter] public Guid? SelectedOptionId { get; set; }
+    [Parameter] public EventCallback<Guid?> SelectedOptionIdChanged { get; set; }
+
+    private async Task OnStringChanged(ChangeEventArgs e) =>
+        await StringValueChanged.InvokeAsync(e.Value?.ToString());
+
+    private async Task OnTextChanged(ChangeEventArgs e) =>
+        await TextValueChanged.InvokeAsync(e.Value?.ToString());
+
+    private async Task OnImageChanged(ChangeEventArgs e) =>
+        await ImageUrlChanged.InvokeAsync(e.Value?.ToString());
+
+    private async Task OnNumericChanged(ChangeEventArgs e)
+    {
+        if (decimal.TryParse(e.Value?.ToString(), out var val))
+            await NumericValueChanged.InvokeAsync(val);
+        else
+            await NumericValueChanged.InvokeAsync(null);
+    }
+
+    private async Task OnDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var val))
+            await DateValueChanged.InvokeAsync(val);
+        else
+            await DateValueChanged.InvokeAsync(null);
+    }
+
+    private async Task OnPeriodStartChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var val))
+            await PeriodStartChanged.InvokeAsync(val);
+    }
+
+    private async Task OnPeriodEndChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var val))
+            await PeriodEndChanged.InvokeAsync(val);
+    }
+
+    private async Task OnBoolChanged(ChangeEventArgs e) =>
+        await BoolValueChanged.InvokeAsync(e.Value is true);
+
+    private async Task OnOptionChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var val))
+            await SelectedOptionIdChanged.InvokeAsync(val);
+        else
+            await SelectedOptionIdChanged.InvokeAsync(null);
+    }
+}

@@ -1,0 +1,58 @@
+@rendermode InteractiveServer
+@using CvManagement.Data.Entities.Attributes
+@using CvManagement.Services.Attributes
+@inject IAttributeService AttributeService
+
+<label class="form-label">@Label</label>
+<div class="input-group">
+    <input type="text" class="form-control" placeholder="Add tags..."
+           @bind="_currentTag" @bind:event="oninput" @onkeydown="HandleKeyDown" />
+    <button class="btn btn-outline-secondary" type="button" @onclick="AddTag">Add</button>
+</div>
+
+@if (Tags?.Any() == true)
+{
+    <div class="d-flex flex-wrap gap-1 mt-2">
+        @foreach (var tag in Tags)
+        {
+            <span class="badge bg-secondary d-flex align-items-center">
+                @tag
+                <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6em;"
+                        @onclick="() => RemoveTag(tag)"></button>
+            </span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "Tags";
+    [Parameter] public List<string> Tags { get; set; } = new();
+    [Parameter] public EventCallback<List<string>> TagsChanged { get; set; }
+
+    private string _currentTag = "";
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == ",")
+        {
+            await AddTag();
+        }
+    }
+
+    private async Task AddTag()
+    {
+        var tag = _currentTag.Trim().Trim(',');
+        if (!string.IsNullOrEmpty(tag) && !Tags.Contains(tag))
+        {
+            Tags.Add(tag);
+            _currentTag = "";
+            await TagsChanged.InvokeAsync(Tags);
+        }
+    }
+
+    private async Task RemoveTag(string tag)
+    {
+        Tags.Remove(tag);
+        await TagsChanged.InvokeAsync(Tags);
+    }
+}

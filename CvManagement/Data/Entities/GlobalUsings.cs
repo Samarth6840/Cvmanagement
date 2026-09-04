@@ -1,0 +1,9 @@
+global using CvManagement.Data;
+global using CvManagement.Data.Entities.Identity;
+global using CvManagement.Data.Entities.Attributes;
+global using CvManagement.Data.Entities.Profiles;
+global using CvManagement.Data.Entities.Positions;
+global using CvManagement.Data.Entities.Cv;
+global using CvManagement.Data.Entities.Projects;
+global using CvManagement.Data.Entities.Likes;
+global using CvManagement.Data.Entities.Discussions;

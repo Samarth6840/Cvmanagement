@@ -1,0 +1,63 @@
+@page "/cvs"
+@using CvManagement.Services.Cv
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Profiles
+@using CvManagement.Data.Entities.Cv
+@inject ICvService CvService
+@inject ICurrentUserService CurrentUserService
+@inject IProfileService ProfileService
+@rendermode InteractiveServer
+
+<h3>CVs</h3>
+
+@if (_isCandidate)
+{
+    <div class="mb-3">
+        <a href="/positions" class="btn btn-primary btn-sm">Create New CV</a>
+    </div>
+}
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Position</th>
+            <th>Status</th>
+            <th>Likes</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var cv in _cvs)
+        {
+            <tr>
+                <td><a href="/cvs/@cv.Id">@cv.Title</a></td>
+                <td><a href="/positions/@cv.PositionId">@cv.Position?.Title</a></td>
+                <td><span class="badge @(cv.Status == CvStatus.Published ? "bg-success" : "bg-warning")">@cv.Status</span></td>
+                <td>@cv.LikeCount</td>
+                <td>@cv.CreatedAt.ToString("MMM dd, yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_cvs.Any())
+{
+    <p class="text-muted">No CVs found.</p>
+}
+
+@code {
+    private List<CvRecord> _cvs = new();
+    private bool _isCandidate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isCandidate = await CurrentUserService.IsInRoleAsync("Candidate") || await CurrentUserService.IsInRoleAsync("Administrator");
+
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+        _cvs = await CvService.GetCandidateCvsAsync(profile.Id);
+    }
+}

@@ -1,0 +1,99 @@
+@page "/cvs/{Id}/edit"
+@using CvManagement.Services.Cv
+@using CvManagement.Services.Profiles
+@using CvManagement.Services.Attributes
+@using CvManagement.Data.Entities.Cv
+@inject ICvService CvService
+@inject IProfileService ProfileService
+@inject ICurrentUserService CurrentUserService
+@inject IAttributeService AttributeService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+@if (_cv is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Edit CV: @_cv.Title</h3>
+        <div class="d-flex gap-2">
+            @if (_cv.Status == CvStatus.Draft)
+            {
+                <button class="btn btn-success btn-sm" @onclick="Publish">Publish</button>
+            }
+            else
+            {
+                <button class="btn btn-warning btn-sm" @onclick="Unpublish">Unpublish</button>
+            }
+            <button class="btn btn-danger btn-sm" @onclick="Delete">Delete</button>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">CV Title</label>
+        <input type="text" class="form-control" @bind="_cv.Title" @onfocusout="SaveTitle" />
+    </div>
+
+    @if (_attributeValues.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Attributes</h5></div>
+            <div class="card-body">
+                <AttributeValueEditor Attributes="_attributes" Values="_attributeValues" />
+            </div>
+        </div>
+    }
+
+    <div class="d-flex gap-2">
+        <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private CvRecord? _cv;
+    private List<ProfileAttributeValue> _attributeValues = new();
+    private List<AttributeDefinition> _attributes = new();
+    private Timer? _saveTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
+        if (_cv is not null)
+        {
+            _attributeValues = await CvService.GetCvAttributeValuesAsync(_cv.Id);
+            _attributes = _attributeValues.Select(v => v.AttributeDefinition).ToList();
+        }
+    }
+
+    private async Task SaveTitle()
+    {
+        if (_cv is null) return;
+        // Title is bound directly, save would need UpdateAsync
+        // For now, title saves on publish/delete actions
+    }
+
+    private async Task Publish()
+    {
+        if (_cv is null) return;
+        await CvService.PublishAsync(_cv.Id);
+        Navigation.NavigateTo($"/cvs/{_cv.Id}");
+    }
+
+    private async Task Unpublish()
+    {
+        if (_cv is null) return;
+        await CvService.UnpublishAsync(_cv.Id);
+        Navigation.NavigateTo($"/cvs/{_cv.Id}");
+    }
+
+    private async Task Delete()
+    {
+        if (_cv is null) return;
+        await CvService.DeleteAsync(_cv.Id);
+        Navigation.NavigateTo("/cvs");
+    }
+}

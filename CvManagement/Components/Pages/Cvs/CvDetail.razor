@@ -1,0 +1,107 @@
+@page "/cvs/{Id}"
+@using CvManagement.Services.Cv
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Markdown
+@using CvManagement.Data.Entities.Cv
+@inject ICvService CvService
+@inject ICurrentUserService CurrentUserService
+@inject IMarkdownRenderer MarkdownRenderer
+
+@if (_cv is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h3>@_cv.Title</h3>
+            <p class="text-muted">Position: <a href="/positions/@_cv.PositionId">@_cv.Position?.Title</a></p>
+            <p class="text-muted">Candidate: @_cv.CandidateProfile?.User?.DisplayName</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge @(_cv.Status == CvStatus.Published ? "bg-success" : "bg-warning") fs-6">@_cv.Status</span>
+            <span class="badge bg-secondary fs-6">@_cv.LikeCount likes</span>
+        </div>
+    </div>
+
+    @if (_attributeValues.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Attributes</h5></div>
+            <div class="card-body">
+                @foreach (var attr in _attributeValues)
+                {
+                    <div class="mb-2">
+                        <strong>@attr.AttributeDefinition.Name:</strong>
+                        @if (attr.AttributeDefinition.DataType == AttributeDataType.Text && !string.IsNullOrEmpty(attr.TextValue))
+                        {
+                            <MarkdownPreview Markdown="@attr.TextValue" />
+                        }
+                        else if (attr.AttributeDefinition.DataType == AttributeDataType.Image && !string.IsNullOrEmpty(attr.ImageUrl))
+                        {
+                            <img src="@attr.ImageUrl" class="img-thumbnail" style="max-height: 100px;" />
+                        }
+                        else if (attr.AttributeDefinition.DataType == AttributeDataType.Boolean)
+                        {
+                            <span>@(attr.BoolValue == true ? "Yes" : "No")</span>
+                        }
+                        else
+                        {
+                            <span>@GetValueDisplay(attr)</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (_projects.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Projects</h5></div>
+            <div class="card-body">
+                @foreach (var proj in _projects)
+                {
+                    <div class="mb-3">
+                        <h6>@proj.Name</h6>
+                        <small class="text-muted">@(proj.StartDate?.ToString("MMM yyyy")) - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")</small>
+                        @if (!string.IsNullOrEmpty(proj.Description))
+                        {
+                            <MarkdownPreview Markdown="@proj.Description" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private CvRecord? _cv;
+    private List<ProfileAttributeValue> _attributeValues = new();
+    private List<CvManagement.Data.Entities.Projects.Project> _projects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
+        if (_cv is not null)
+        {
+            _attributeValues = await CvService.GetCvAttributeValuesAsync(_cv.Id);
+            _projects = await CvService.GetCvProjectsAsync(_cv.Id);
+        }
+    }
+
+    private string GetValueDisplay(ProfileAttributeValue v) =>
+        v.AttributeDefinition.DataType switch
+        {
+            AttributeDataType.String => v.StringValue ?? "",
+            AttributeDataType.Numeric => v.NumericValue?.ToString() ?? "",
+            AttributeDataType.Date => v.DateValue?.ToString("MMM dd, yyyy") ?? "",
+            AttributeDataType.Period => $"{v.PeriodStart?.ToString("MMM yyyy")} - {v.PeriodEnd?.ToString("MMM yyyy") ?? "Present"}",
+            AttributeDataType.OneOfMany => v.SelectedOption?.Label ?? "",
+            _ => ""
+        };
+}

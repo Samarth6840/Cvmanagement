@@ -1,0 +1,76 @@
+@page "/cvs/create/{PositionId}"
+@using CvManagement.Services.Cv
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Profiles
+@using CvManagement.Services.Positions
+@inject ICvService CvService
+@inject ICurrentUserService CurrentUserService
+@inject IProfileService ProfileService
+@inject IPositionService PositionService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Create CV</h3>
+
+@if (_position is not null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <p>Creating CV for position: <strong>@_position.Title</strong></p>
+
+            @if (_existingCv is not null)
+            {
+                <div class="alert alert-warning">
+                    You already have a CV for this position.
+                    <a href="/cvs/@_existingCv.Id">View it here</a>.
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label">CV Title</label>
+                    <input type="text" class="form-control" @bind="_title" />
+                </div>
+                <button class="btn btn-primary" @onclick="CreateCv" disabled="@(string.IsNullOrWhiteSpace(_title))">Create CV</button>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <p>Loading...</p>
+}
+
+@code {
+    [Parameter] public string PositionId { get; set; } = "";
+
+    private Data.Entities.Positions.Position? _position;
+    private CvRecord? _existingCv;
+    private string _title = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var posId = Guid.Parse(PositionId);
+        _position = await PositionService.GetByIdAsync(posId);
+
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is not null)
+        {
+            var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+            var existingCvs = await CvService.GetCandidateCvsAsync(profile.Id);
+            _existingCv = existingCvs.FirstOrDefault(c => c.PositionId == posId);
+        }
+
+        _title = $"My CV for {_position?.Title ?? "Position"}";
+    }
+
+    private async Task CreateCv()
+    {
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+        var cv = await CvService.CreateAsync(profile.Id, Guid.Parse(PositionId), _title, userId.Value);
+        Navigation.NavigateTo($"/cvs/{cv.Id}");
+    }
+}

@@ -5,6 +5,7 @@
 @inject IPositionService PositionService
 @inject ICurrentUserService CurrentUserService
 @inject IMarkdownRenderer MarkdownRenderer
+@rendermode InteractiveServer
 
 @if (_position is null)
 {
@@ -27,6 +28,10 @@ else
             @if (_isRecruiter)
             {
                 <a href="/positions/edit/@_position.Id" class="btn btn-outline-primary btn-sm">Edit</a>
+            }
+            @if (_isCandidate && _position.IsOpen)
+            {
+                <a href="/cvs/create/@_position.Id" class="btn btn-primary btn-sm">Create CV</a>
             }
         </div>
     </div>
@@ -103,10 +108,12 @@ else
     [Parameter] public string Id { get; set; } = "";
     private Position? _position;
     private bool _isRecruiter;
+    private bool _isCandidate;
 
     protected override async Task OnInitializedAsync()
     {
         _position = await PositionService.GetByIdAsync(Guid.Parse(Id));
         _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
+        _isCandidate = await CurrentUserService.IsInRoleAsync("Candidate");
     }
 }

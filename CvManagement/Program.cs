@@ -56,6 +56,8 @@ builder.Services.AddScoped<CvManagement.Services.Auth.ICurrentUserService, CvMan
 builder.Services.AddScoped<CvManagement.Services.Attributes.IAttributeService, CvManagement.Services.Attributes.AttributeService>();
 builder.Services.AddScoped<CvManagement.Services.Profiles.IProfileService, CvManagement.Services.Profiles.ProfileService>();
 builder.Services.AddScoped<CvManagement.Services.Markdown.IMarkdownRenderer, CvManagement.Services.Markdown.MarkdownRenderer>();
+builder.Services.AddScoped<CvManagement.Services.Positions.IPositionService, CvManagement.Services.Positions.PositionService>();
+builder.Services.AddScoped<CvManagement.Services.Projects.IProjectService, CvManagement.Services.Projects.ProjectService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 

@@ -1,0 +1,56 @@
+@page "/positions"
+@using CvManagement.Services.Positions
+@using CvManagement.Services.Auth
+@inject IPositionService PositionService
+@inject ICurrentUserService CurrentUserService
+@rendermode InteractiveServer
+
+<h3>Positions</h3>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div></div>
+    @if (_isRecruiter)
+    {
+        <a href="/positions/edit" class="btn btn-primary btn-sm">Create Position</a>
+    }
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>CVs</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pos in _positions)
+        {
+            <tr>
+                <td><a href="/positions/@pos.Id">@pos.Title</a></td>
+                <td>@pos.Company</td>
+                <td><span class="badge @(pos.IsOpen ? "bg-success" : "bg-secondary")">@(pos.IsOpen ? "Open" : "Closed")</span></td>
+                <td>@pos.CvRecords.Count</td>
+                <td>@pos.CreatedAt.ToString("MMM dd, yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_positions.Any())
+{
+    <p class="text-muted">No positions found.</p>
+}
+
+@code {
+    private List<Position> _positions = new();
+    private bool _isRecruiter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
+        _positions = await PositionService.GetAllAsync();
+    }
+}

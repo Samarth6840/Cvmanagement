@@ -1,0 +1,164 @@
+@page "/positions/edit/{Id?}"
+@using CvManagement.Services.Positions
+@using CvManagement.Services.Attributes
+@using CvManagement.Services.Auth
+@using CvManagement.Data.Entities.Attributes
+@using CvManagement.Data.Entities.Positions
+@attribute [Authorize(Policy = "RecruiterOnly")]
+@inject IPositionService PositionService
+@inject IAttributeService AttributeService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>@(_isNew ? "Create Position" : "Edit Position")</h3>
+
+@if (_position is not null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-control" @bind="_position.Title" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Company</label>
+                    <input type="text" class="form-control" @bind="_position.Company" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description (Markdown)</label>
+                <textarea class="form-control" rows="4" @bind="_position.Description"></textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" @bind="_position.IsPublic" />
+                        <label class="form-check-label">Public</label>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" @bind="_position.IsOpen" />
+                        <label class="form-check-label">Open for applications</label>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Max Projects</label>
+                    <input type="number" class="form-control" @bind="_position.MaxProjects" min="1" max="20" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Attribute Template</h5></div>
+        <div class="card-body">
+            <div class="d-flex gap-2 mb-3">
+                <select class="form-select form-select-sm" @bind="_selectedAttrId">
+                    <option value="">Select attribute...</option>
+                    @foreach (var attr in _allAttributes)
+                    {
+                        <option value="@attr.Id">@attr.Name (@attr.DataType)</option>
+                    }
+                </select>
+                <button class="btn btn-sm btn-outline-primary" @onclick="AddAttributeRule" disabled="@(string.IsNullOrEmpty(_selectedAttrId))">Add</button>
+            </div>
+            @foreach (var rule in _attributeRules)
+            {
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span>@rule.AttributeDefinition.Name</span>
+                    <div class="form-check form-check-inline">
+                        <input type="checkbox" class="form-check-input" checked="@rule.IsRequired" @onchange="e => rule.IsRequired = e.Value is true" />
+                        <label class="form-check-label small">Required</label>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAttributeRule(rule)">Remove</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Project Tags</h5></div>
+        <div class="card-body">
+            <TagInput Tags="_tags" TagsChanged="OnTagsChanged" />
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" @onclick="Save">Save</button>
+        <a href="/positions" class="btn btn-secondary">Cancel</a>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    private Position? _position;
+    private List<AttributeDefinition> _allAttributes = new();
+    private List<PositionAttributeRule> _attributeRules = new();
+    private List<string> _tags = new();
+    private bool _isNew;
+    private string _selectedAttrId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allAttributes = await AttributeService.GetAllAsync();
+
+        if (string.IsNullOrEmpty(Id) || Id == "new")
+        {
+            _isNew = true;
+            _position = new Position();
+        }
+        else
+        {
+            _position = await PositionService.GetByIdAsync(Guid.Parse(Id));
+            if (_position is not null)
+            {
+                _attributeRules = _position.AttributeRules.ToList();
+                _tags = _position.Tags.Select(t => t.Tag).ToList();
+            }
+        }
+    }
+
+    private async Task AddAttributeRule()
+    {
+        if (_position is null || string.IsNullOrEmpty(_selectedAttrId)) return;
+        var attrId = Guid.Parse(_selectedAttrId);
+        await PositionService.AddAttributeRuleAsync(_position.Id, attrId, false);
+        var attr = _allAttributes.First(a => a.Id == attrId);
+        _attributeRules.Add(new PositionAttributeRule { AttributeDefinition = attr, AttributeDefinitionId = attrId });
+        _selectedAttrId = "";
+    }
+
+    private async Task RemoveAttributeRule(PositionAttributeRule rule)
+    {
+        if (_position is null) return;
+        await PositionService.RemoveAttributeRuleAsync(_position.Id, rule.AttributeDefinitionId);
+        _attributeRules.Remove(rule);
+    }
+
+    private void OnTagsChanged(List<string> tags) => _tags = tags;
+
+    private async Task Save()
+    {
+        if (_position is null) return;
+
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null) return;
+
+        Position saved;
+        if (_isNew)
+            saved = await PositionService.CreateAsync(_position, userId.Value);
+        else
+            saved = await PositionService.UpdateAsync(_position.Id, _position);
+
+        // Sync tags
+        var existingTags = _tags;
+        foreach (var tag in existingTags)
+            await PositionService.AddTagAsync(saved.Id, tag);
+
+        Navigation.NavigateTo("/positions");
+    }
+}

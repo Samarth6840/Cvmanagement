@@ -1,0 +1,53 @@
+@page "/projects"
+@using CvManagement.Services.Projects
+@inject IProjectService ProjectService
+@attribute [Authorize(Policy = "RecruiterOnly")]
+@rendermode InteractiveServer
+
+<h3>Projects</h3>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div></div>
+    <a href="/projects/edit" class="btn btn-primary btn-sm">Create Project</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Tags</th>
+            <th>Period</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var proj in _projects)
+        {
+            <tr>
+                <td><a href="/projects/edit/@proj.Id">@proj.Name</a></td>
+                <td>
+                    @foreach (var tag in proj.Tags.Take(3))
+                    {
+                        <span class="badge bg-secondary me-1">@tag.Tag</span>
+                    }
+                </td>
+                <td>@(proj.StartDate?.ToString("MMM yyyy")) - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")</td>
+                <td>@proj.CreatedAt.ToString("MMM dd, yyyy")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!_projects.Any())
+{
+    <p class="text-muted">No projects found.</p>
+}
+
+@code {
+    private List<Project> _projects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _projects = await ProjectService.GetAllAsync();
+    }
+}

@@ -1,0 +1,103 @@
+@page "/projects/edit/{Id?}"
+@using CvManagement.Services.Projects
+@using CvManagement.Data.Entities.Projects
+@attribute [Authorize(Policy = "RecruiterOnly")]
+@inject IProjectService ProjectService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>@(_isNew ? "Create Project" : "Edit Project")</h3>
+
+@if (_project is not null)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" @bind="_project.Name" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description (Markdown)</label>
+                <textarea class="form-control" rows="4" @bind="_project.Description"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">URL</label>
+                <input type="url" class="form-control" @bind="_project.Url" />
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" value="@(_project.StartDate?.ToString("yyyy-MM-dd"))" @onchange="OnStartDateChanged" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" value="@(_project.EndDate?.ToString("yyyy-MM-dd"))" @onchange="OnEndDateChanged" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <TagInput Tags="_tags" TagsChanged="OnTagsChanged" />
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="Save">Save</button>
+                <a href="/projects" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    private Project? _project;
+    private List<string> _tags = new();
+    private bool _isNew;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Id) || Id == "new")
+        {
+            _isNew = true;
+            _project = new Project();
+        }
+        else
+        {
+            _project = await ProjectService.GetByIdAsync(Guid.Parse(Id));
+            if (_project is not null)
+                _tags = _project.Tags.Select(t => t.Tag).ToList();
+        }
+    }
+
+    private void OnTagsChanged(List<string> tags) => _tags = tags;
+
+    private void OnStartDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var d))
+            _project!.StartDate = d;
+        else
+            _project!.StartDate = null;
+    }
+
+    private void OnEndDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var d))
+            _project!.EndDate = d;
+        else
+            _project!.EndDate = null;
+    }
+
+    private async Task Save()
+    {
+        if (_project is null) return;
+
+        Project saved;
+        if (_isNew)
+            saved = await ProjectService.CreateAsync(_project);
+        else
+            saved = await ProjectService.UpdateAsync(_project.Id, _project);
+
+        foreach (var tag in _tags)
+            await ProjectService.AddTagAsync(saved.Id, tag);
+
+        Navigation.NavigateTo("/projects");
+    }
+}

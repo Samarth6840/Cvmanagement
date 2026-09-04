@@ -1,0 +1,112 @@
+@page "/positions/{Id}"
+@using CvManagement.Services.Positions
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Markdown
+@inject IPositionService PositionService
+@inject ICurrentUserService CurrentUserService
+@inject IMarkdownRenderer MarkdownRenderer
+
+@if (_position is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h3>@_position.Title</h3>
+            @if (!string.IsNullOrEmpty(_position.Company))
+            {
+                <span class="text-muted">@_position.Company</span>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge @(_position.IsOpen ? "bg-success" : "bg-secondary") fs-6">
+                @(_position.IsOpen ? "Open" : "Closed")
+            </span>
+            @if (_isRecruiter)
+            {
+                <a href="/positions/edit/@_position.Id" class="btn btn-outline-primary btn-sm">Edit</a>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_position.Description))
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <MarkdownPreview Markdown="@_position.Description" />
+            </div>
+        </div>
+    }
+
+    @if (_position.AttributeRules.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Required Attributes</h5></div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var rule in _position.AttributeRules.OrderBy(r => r.SortOrder))
+                    {
+                        <span class="badge @(rule.IsRequired ? "bg-primary" : "bg-secondary")">
+                            @rule.AttributeDefinition.Name
+                            @if (rule.IsRequired) { <span class="ms-1">*</span> }
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_position.Tags.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Project Tags</h5></div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var tag in _position.Tags)
+                    {
+                        <span class="badge bg-info">@tag.Tag</span>
+                    }
+                </div>
+                <p class="text-muted mt-2 mb-0">Max projects to include: @_position.MaxProjects</p>
+            </div>
+        </div>
+    }
+
+    @if (_position.CvRecords.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Submitted CVs (@_position.CvRecords.Count)</h5></div>
+            <div class="card-body">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr><th>CV</th><th>Status</th><th>Likes</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cv in _position.CvRecords)
+                        {
+                            <tr>
+                                <td><a href="/cvs/@cv.Id">@cv.Title</a></td>
+                                <td>@cv.Status</td>
+                                <td>@cv.LikeCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    private Position? _position;
+    private bool _isRecruiter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _position = await PositionService.GetByIdAsync(Guid.Parse(Id));
+        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
+    }
+}

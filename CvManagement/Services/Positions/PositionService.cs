@@ -1,6 +1,5 @@
 using CvManagement.Data;
 using CvManagement.Data.Entities.Positions;
-using CvManagement.Data.Entities.Attributes;
 using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Positions;
@@ -64,60 +63,6 @@ public class PositionService : IPositionService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<Position> DuplicateAsync(Guid sourceId, Guid createdByUserId)
-    {
-        var source = await GetByIdAsync(sourceId)
-            ?? throw new InvalidOperationException("Source position not found");
-
-        var copy = new Position
-        {
-            Title = source.Title + " (Copy)",
-            Description = source.Description,
-            Company = source.Company,
-            IsPublic = source.IsPublic,
-            IsOpen = source.IsOpen,
-            MaxProjects = source.MaxProjects,
-            CreatedByUserId = createdByUserId
-        };
-
-        _db.Positions.Add(copy);
-        await _db.SaveChangesAsync();
-
-        foreach (var rule in source.AttributeRules)
-        {
-            _db.PositionAttributeRules.Add(new PositionAttributeRule
-            {
-                PositionId = copy.Id,
-                AttributeDefinitionId = rule.AttributeDefinitionId,
-                IsRequired = rule.IsRequired,
-                SortOrder = rule.SortOrder
-            });
-        }
-
-        foreach (var tag in source.Tags)
-        {
-            _db.PositionTags.Add(new PositionTag
-            {
-                PositionId = copy.Id,
-                Tag = tag.Tag
-            });
-        }
-
-        foreach (var accessRule in source.AccessRules)
-        {
-            _db.PositionAccessRules.Add(new PositionAccessRule
-            {
-                PositionId = copy.Id,
-                AttributeDefinitionId = accessRule.AttributeDefinitionId,
-                Operator = accessRule.Operator,
-                FilterValue = accessRule.FilterValue
-            });
-        }
-
-        await _db.SaveChangesAsync();
-        return copy;
-    }
-
     public async Task AddAttributeRuleAsync(Guid positionId, Guid attributeId, bool isRequired)
     {
         var exists = await _db.PositionAttributeRules
@@ -146,29 +91,6 @@ public class PositionService : IPositionService
         }
     }
 
-    public async Task AddAccessRuleAsync(Guid positionId, Guid attributeId, PositionAccessOperator op, string filterValue)
-    {
-        _db.PositionAccessRules.Add(new PositionAccessRule
-        {
-            PositionId = positionId,
-            AttributeDefinitionId = attributeId,
-            Operator = op,
-            FilterValue = filterValue
-        });
-        await _db.SaveChangesAsync();
-    }
-
-    public async Task RemoveAccessRuleAsync(Guid positionId, Guid ruleId)
-    {
-        var rule = await _db.PositionAccessRules
-            .FirstOrDefaultAsync(r => r.Id == ruleId && r.PositionId == positionId);
-        if (rule is not null)
-        {
-            _db.PositionAccessRules.Remove(rule);
-            await _db.SaveChangesAsync();
-        }
-    }
-
     public async Task AddTagAsync(Guid positionId, string tag)
     {
         var exists = await _db.PositionTags
@@ -189,13 +111,4 @@ public class PositionService : IPositionService
             await _db.SaveChangesAsync();
         }
     }
-
-    public async Task<List<Position>> GetAccessiblePositionsAsync(Guid userId) =>
-        await _db.Positions
-            .Where(p => p.IsPublic || p.AccessRules.Any())
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync();
-
-    public async Task<int> GetCvCountAsync(Guid positionId) =>
-        await _db.CvRecords.CountAsync(c => c.PositionId == positionId);
 }

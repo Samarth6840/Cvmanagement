@@ -23,26 +23,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-})
-.AddCookie(IdentityConstants.ApplicationScheme)
-.AddCookie(IdentityConstants.ExternalScheme)
-.AddGoogle("Google", options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.CallbackPath = "/signin-google";
-})
-.AddGitHub("GitHub", options =>
-{
-    options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"] ?? "";
-    options.CallbackPath = "/signin-github";
-    options.Scope.Add("user:email");
-});
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddCookie(IdentityConstants.ApplicationScheme);
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RecruiterOnly", p => p.RequireRole("Recruiter", "Administrator"))

@@ -27,28 +27,24 @@ public class SearchService : ISearchService
         if (string.IsNullOrWhiteSpace(query))
             return new();
 
-        var sanitized = query.Replace("'", "''");
-
-        var tsQuery = $"plainto_tsquery('english', '{sanitized}')";
-
         var positionResults = await _db.Database
-            .SqlQueryRaw<SearchResult>($@"
+            .SqlQuery<SearchResult>($@"
                 SELECT 'Position' AS ""Type"", p.""Id"", p.""Title"", p.""Company"" AS ""Subtitle"",
-                       ts_rank(p.""SearchVector"", {tsQuery}) AS ""Rank""
+                       ts_rank(p.""SearchVector"", plainto_tsquery('english', {query})) AS ""Rank""
                 FROM ""Positions"" p
-                WHERE p.""SearchVector"" @@ {tsQuery}
+                WHERE p.""SearchVector"" @@ plainto_tsquery('english', {query})
                 ORDER BY ""Rank"" DESC
                 LIMIT 20")
             .ToListAsync();
 
         var cvResults = await _db.Database
-            .SqlQueryRaw<SearchResult>($@"
+            .SqlQuery<SearchResult>($@"
                 SELECT 'CV' AS ""Type"", c.""Id"", c.""Title"", u.""DisplayName"" AS ""Subtitle"",
-                       ts_rank(c.""SearchVector"", {tsQuery}) AS ""Rank""
+                       ts_rank(c.""SearchVector"", plainto_tsquery('english', {query})) AS ""Rank""
                 FROM ""CvRecords"" c
                 JOIN ""CandidateProfiles"" cp ON c.""CandidateProfileId"" = cp.""Id""
                 JOIN ""Users"" u ON cp.""UserId"" = u.""Id""
-                WHERE c.""SearchVector"" @@ {tsQuery}
+                WHERE c.""SearchVector"" @@ plainto_tsquery('english', {query})
                 ORDER BY ""Rank"" DESC
                 LIMIT 20")
             .ToListAsync();

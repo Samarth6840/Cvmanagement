@@ -13,7 +13,6 @@ public interface IProjectService
     Task DeleteAsync(Guid id);
     Task AddTagAsync(Guid projectId, string tag);
     Task RemoveTagAsync(Guid projectId, string tag);
-    Task<List<string>> GetAllTagsAsync();
 }
 
 public class ProjectService : IProjectService
@@ -85,11 +84,4 @@ public class ProjectService : IProjectService
             await _db.SaveChangesAsync();
         }
     }
-
-    public async Task<List<string>> GetAllTagsAsync() =>
-        await _db.ProjectTags
-            .Select(t => t.Tag)
-            .Distinct()
-            .OrderBy(t => t)
-            .ToListAsync();
 }

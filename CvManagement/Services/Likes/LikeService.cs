@@ -1,6 +1,5 @@
 using CvManagement.Data.Entities.Cv;
 using CvManagement.Data.Entities.Likes;
-using CvManagement.Data.Entities.Profiles;
 using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Likes;
@@ -10,7 +9,6 @@ public interface ILikeService
     Task<bool> ToggleAsync(Guid userId, Guid cvRecordId);
     Task<int> GetLikeCountAsync(Guid cvRecordId);
     Task<bool> HasUserLikedAsync(Guid userId, Guid cvRecordId);
-    Task<List<CvRecord>> GetTopLikedAsync(int count);
 }
 
 public class LikeService : ILikeService
@@ -43,12 +41,4 @@ public class LikeService : ILikeService
 
     public async Task<bool> HasUserLikedAsync(Guid userId, Guid cvRecordId) =>
         await _db.CvLikes.AnyAsync(l => l.UserId == userId && l.CvRecordId == cvRecordId);
-
-    public async Task<List<CvRecord>> GetTopLikedAsync(int count) =>
-        await _db.CvRecords
-            .Include(c => c.CandidateProfile).ThenInclude(p => p!.User)
-            .Include(c => c.Position)
-            .OrderByDescending(c => c.LikeCount)
-            .Take(count)
-            .ToListAsync();
 }

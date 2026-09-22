@@ -36,7 +36,7 @@ public class DiscussionService : IDiscussionService
         _db.DiscussionMessages.Add(message);
         await _db.SaveChangesAsync();
 
-        message.User = await _db.Users.FindAsync(authorUserId);
+        message.User = await _db.Users.FindAsync(authorUserId) ?? throw new InvalidOperationException("User not found");
         return message;
     }
 }

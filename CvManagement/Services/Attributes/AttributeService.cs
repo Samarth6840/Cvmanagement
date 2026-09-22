@@ -16,13 +16,6 @@ public class AttributeService : IAttributeService
             .ThenBy(a => a.Name)
             .ToListAsync();
 
-    public async Task<List<AttributeDefinition>> GetByCategoryAsync(AttributeCategory category) =>
-        await _db.AttributeDefinitions
-            .Where(a => a.Category == category)
-            .OrderBy(a => a.SortOrder)
-            .ThenBy(a => a.Name)
-            .ToListAsync();
-
     public async Task<AttributeDefinition?> GetByIdAsync(Guid id) =>
         await _db.AttributeDefinitions
             .Include(a => a.Options)
@@ -91,11 +84,4 @@ public class AttributeService : IAttributeService
             await _db.SaveChangesAsync();
         }
     }
-
-    public async Task<List<AttributeDefinition>> SearchByPrefixAsync(string prefix) =>
-        await _db.AttributeDefinitions
-            .Where(a => a.Name.StartsWith(prefix))
-            .OrderBy(a => a.Name)
-            .Take(20)
-            .ToListAsync();
 }

@@ -95,6 +95,8 @@
         else
             saved = await ProjectService.UpdateAsync(_project.Id, _project);
 
+        foreach (var tag in _project.Tags.Select(t => t.Tag).Except(_tags))
+            await ProjectService.RemoveTagAsync(saved.Id, tag);
         foreach (var tag in _tags)
             await ProjectService.AddTagAsync(saved.Id, tag);
 

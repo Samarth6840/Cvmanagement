@@ -155,8 +155,10 @@
             saved = await PositionService.UpdateAsync(_position.Id, _position);
 
         // Sync tags
-        var existingTags = _tags;
-        foreach (var tag in existingTags)
+        var currentTags = _position.Tags.Select(t => t.Tag).ToHashSet();
+        foreach (var tag in currentTags.Except(_tags))
+            await PositionService.RemoveTagAsync(saved.Id, tag);
+        foreach (var tag in _tags)
             await PositionService.AddTagAsync(saved.Id, tag);
 
         Navigation.NavigateTo("/positions");

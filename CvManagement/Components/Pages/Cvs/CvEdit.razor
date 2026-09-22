@@ -1,11 +1,8 @@
 @page "/cvs/{Id}/edit"
 @using CvManagement.Services.Cv
-@using CvManagement.Services.Profiles
 @using CvManagement.Services.Attributes
 @using CvManagement.Data.Entities.Cv
 @inject ICvService CvService
-@inject IProfileService ProfileService
-@inject ICurrentUserService CurrentUserService
 @inject IAttributeService AttributeService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
@@ -57,7 +54,6 @@ else
     private CvRecord? _cv;
     private List<ProfileAttributeValue> _attributeValues = new();
     private List<AttributeDefinition> _attributes = new();
-    private Timer? _saveTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,8 +68,7 @@ else
     private async Task SaveTitle()
     {
         if (_cv is null) return;
-        // Title is bound directly, save would need UpdateAsync
-        // For now, title saves on publish/delete actions
+        await CvService.UpdateTitleAsync(_cv.Id, _cv.Title);
     }
 
     private async Task Publish()

@@ -15,7 +15,7 @@ public interface ICvService
     Task DeleteAsync(Guid id);
     Task<CvRecord> PublishAsync(Guid id);
     Task<CvRecord> UnpublishAsync(Guid id);
-    Task<bool> CanPublishAsync(Guid id);
+    Task UpdateTitleAsync(Guid id, string title);
     Task<List<ProfileAttributeValue>> GetCvAttributeValuesAsync(Guid cvId);
     Task<List<Project>> GetCvProjectsAsync(Guid cvId);
 }
@@ -91,26 +91,12 @@ public class CvService : ICvService
         return cv;
     }
 
-    public async Task<bool> CanPublishAsync(Guid id)
+    public async Task UpdateTitleAsync(Guid id, string title)
     {
-        var cv = await _db.CvRecords
-            .Include(c => c.Position).ThenInclude(p => p!.AttributeRules)
-            .Include(c => c.CandidateProfile).ThenInclude(p => p!.AttributeValues)
-            .FirstOrDefaultAsync(c => c.Id == id);
-
-        if (cv?.Position is null || cv.CandidateProfile is null) return false;
-
-        var requiredAttrIds = cv.Position.AttributeRules
-            .Where(r => r.IsRequired)
-            .Select(r => r.AttributeDefinitionId)
-            .ToHashSet();
-
-        var filledAttrIds = cv.CandidateProfile.AttributeValues
-            .Where(v => HasValue(v))
-            .Select(v => v.AttributeDefinitionId)
-            .ToHashSet();
-
-        return requiredAttrIds.IsSubsetOf(filledAttrIds);
+        var cv = await _db.CvRecords.FindAsync(id)
+            ?? throw new InvalidOperationException("CV not found");
+        cv.Title = title;
+        await _db.SaveChangesAsync();
     }
 
     public async Task<List<ProfileAttributeValue>> GetCvAttributeValuesAsync(Guid cvId)
@@ -150,14 +136,4 @@ public class CvService : ICvService
             .Select(cp => cp.Project!)
             .ToList();
     }
-
-    private static bool HasValue(ProfileAttributeValue v) =>
-        v.StringValue is not null ||
-        v.TextValue is not null ||
-        v.ImageUrl is not null ||
-        v.NumericValue.HasValue ||
-        v.DateValue.HasValue ||
-        v.PeriodStart.HasValue ||
-        v.BoolValue.HasValue ||
-        v.SelectedOptionId.HasValue;
 }

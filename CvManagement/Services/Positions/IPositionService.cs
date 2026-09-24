@@ -14,4 +14,11 @@ public interface IPositionService
     Task RemoveAttributeRuleAsync(Guid positionId, Guid attributeId);
     Task AddTagAsync(Guid positionId, string tag);
     Task RemoveTagAsync(Guid positionId, string tag);
+    Task<Position> DuplicateAsync(Guid id, Guid createdByUserId);
+    Task<bool> CanCandidateAccessAsync(Guid candidateProfileId, Guid positionId);
+    Task<List<Position>> GetAccessiblePositionsAsync(Guid candidateProfileId);
+    Task<List<Position>> GetLatestAsync(int count);
+    Task<List<Position>> GetMostPopularAsync(int count);
+    Task<List<(string Tag, int Count)>> GetTagCountsAsync();
+    Task<(int Positions, int Candidates, int Recruiters, int Cvs24h, int TotalCvs)> GetLandingStatsAsync();
 }

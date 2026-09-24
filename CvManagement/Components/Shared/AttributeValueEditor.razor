@@ -61,7 +61,7 @@
 
 @code {
     [Parameter] public AttributeDefinition? Attribute { get; set; }
-    [Parameter] public List<AttributeOption>? Options { get; set; }
+    [Parameter] public ICollection<AttributeOption>? Options { get; set; }
 
     [Parameter] public string? StringValue { get; set; }
     [Parameter] public EventCallback<string?> StringValueChanged { get; set; }

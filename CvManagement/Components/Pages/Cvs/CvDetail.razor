@@ -2,6 +2,7 @@
 @using CvManagement.Services.Cv
 @using CvManagement.Services.Auth
 @using CvManagement.Services.Markdown
+@using CvManagement.Data.Entities.Attributes
 @using CvManagement.Data.Entities.Cv
 @inject ICvService CvService
 @inject ICurrentUserService CurrentUserService
@@ -25,30 +26,32 @@ else
         </div>
     </div>
 
-    @if (_attributeValues.Any())
+    @if (_definitions.Any())
     {
         <div class="card mb-4">
             <div class="card-header"><h5 class="mb-0">Attributes</h5></div>
             <div class="card-body">
-                @foreach (var attr in _attributeValues)
+                @foreach (var def in _definitions)
                 {
+                    var value = GetValue(def.Id);
+                    var unfilled = def.IsRequired && !CvService.IsValueFilled(value);
                     <div class="mb-2">
-                        <strong>@attr.AttributeDefinition.Name:</strong>
-                        @if (attr.AttributeDefinition.DataType == AttributeDataType.Text && !string.IsNullOrEmpty(attr.TextValue))
+                        <strong>@def.Name:</strong>
+                        @if (unfilled)
                         {
-                            <MarkdownPreview Markdown="@attr.TextValue" />
+                            <span class="text-danger fw-bold">(empty — required)</span>
                         }
-                        else if (attr.AttributeDefinition.DataType == AttributeDataType.Image && !string.IsNullOrEmpty(attr.ImageUrl))
+                        else if (def.DataType == AttributeDataType.Text && !string.IsNullOrEmpty(value?.TextValue))
                         {
-                            <img src="@attr.ImageUrl" class="img-thumbnail" style="max-height: 100px;" />
+                            <MarkdownPreview Markdown="@value.TextValue" />
                         }
-                        else if (attr.AttributeDefinition.DataType == AttributeDataType.Boolean)
+                        else if (def.DataType == AttributeDataType.Image && !string.IsNullOrEmpty(value?.ImageUrl))
                         {
-                            <span>@(attr.BoolValue == true ? "Yes" : "No")</span>
+                            <img src="@value.ImageUrl" class="img-thumbnail" style="max-height: 100px;" />
                         }
                         else
                         {
-                            <span>@GetValueDisplay(attr)</span>
+                            <span>@GetValueDisplay(value)</span>
                         }
                     </div>
                 }
@@ -81,27 +84,36 @@ else
     [Parameter] public string Id { get; set; } = "";
 
     private CvRecord? _cv;
-    private List<ProfileAttributeValue> _attributeValues = new();
-    private List<CvManagement.Data.Entities.Projects.Project> _projects = new();
+    private List<AttributeDefinition> _definitions = new();
+    private Dictionary<Guid, ProfileAttributeValue?> _values = new();
+    private List<Project> _projects = new();
 
     protected override async Task OnInitializedAsync()
     {
         _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
         if (_cv is not null)
         {
-            _attributeValues = await CvService.GetCvAttributeValuesAsync(_cv.Id);
+            _definitions = await CvService.GetCvAttributeDefinitionsAsync(_cv.Id);
+            foreach (var def in _definitions)
+                _values[def.Id] = await CvService.GetCvAttributeValueAsync(_cv.Id, def.Id);
             _projects = await CvService.GetCvProjectsAsync(_cv.Id);
         }
     }
 
-    private string GetValueDisplay(ProfileAttributeValue v) =>
-        v.AttributeDefinition.DataType switch
+    private ProfileAttributeValue? GetValue(Guid id) => _values.TryGetValue(id, out var v) ? v : null;
+
+    private string GetValueDisplay(ProfileAttributeValue? v)
+    {
+        if (v is null) return "";
+        return v.AttributeDefinition.DataType switch
         {
             AttributeDataType.String => v.StringValue ?? "",
             AttributeDataType.Numeric => v.NumericValue?.ToString() ?? "",
             AttributeDataType.Date => v.DateValue?.ToString("MMM dd, yyyy") ?? "",
             AttributeDataType.Period => $"{v.PeriodStart?.ToString("MMM yyyy")} - {v.PeriodEnd?.ToString("MMM yyyy") ?? "Present"}",
             AttributeDataType.OneOfMany => v.SelectedOption?.Label ?? "",
+            AttributeDataType.Boolean => v.BoolValue == true ? "Yes" : "No",
             _ => ""
         };
+    }
 }

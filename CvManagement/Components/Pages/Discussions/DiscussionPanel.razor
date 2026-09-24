@@ -22,7 +22,16 @@
             {
                 <div class="mb-3 p-2 rounded" style="background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);">
                     <div class="d-flex justify-content-between">
-                        <strong>@msg.User?.DisplayName</strong>
+                        <strong>
+                            @if (_isRecruiter)
+                            {
+                                <a href="/users/@msg.UserId">@msg.User?.DisplayName</a>
+                            }
+                            else
+                            {
+                                @msg.User?.DisplayName
+                            }
+                        </strong>
                         <small class="text-muted">@msg.CreatedAt.ToString("MMM dd, HH:mm")</small>
                     </div>
                     <MarkdownPreview Markdown="@msg.Content" />
@@ -49,9 +58,11 @@
     private HubConnection? _hubConnection;
     private string _newMessage = "";
     private bool _connected;
+    private bool _isRecruiter;
 
     protected override async Task OnInitializedAsync()
     {
+        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
         _messages = await DiscussionService.GetMessagesAsync(PositionId);
 
         _hubConnection = new HubConnectionBuilder()

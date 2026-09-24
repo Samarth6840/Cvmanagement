@@ -9,6 +9,7 @@ public class CvRecordConfiguration : IEntityTypeConfiguration<CvRecord>
     public void Configure(EntityTypeBuilder<CvRecord> b)
     {
         b.HasKey(e => e.Id);
+        b.HasIndex(e => new { e.CandidateProfileId, e.PositionId }).IsUnique();
         b.HasIndex(e => e.CandidateProfileId);
         b.HasIndex(e => e.PositionId);
         b.HasIndex(e => e.Status);

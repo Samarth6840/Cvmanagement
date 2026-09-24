@@ -23,8 +23,11 @@ public class AttributeService : IAttributeService
 
     public async Task<AttributeDefinition> CreateAsync(AttributeDefinition attribute)
     {
-        attribute.Id = Guid.NewGuid();
         attribute.Slug = attribute.Name.ToLowerInvariant().Replace(" ", "-");
+        if (await _db.AttributeDefinitions.AnyAsync(a => a.Name == attribute.Name || a.Slug == attribute.Slug))
+            throw new InvalidOperationException("An attribute with this name already exists.");
+
+        attribute.Id = Guid.NewGuid();
         attribute.CreatedAt = DateTimeOffset.UtcNow;
         _db.AttributeDefinitions.Add(attribute);
         await _db.SaveChangesAsync();
@@ -36,8 +39,12 @@ public class AttributeService : IAttributeService
         var existing = await _db.AttributeDefinitions.FindAsync(id)
             ?? throw new InvalidOperationException("Attribute not found");
 
+        var slug = attribute.Name.ToLowerInvariant().Replace(" ", "-");
+        if (await _db.AttributeDefinitions.AnyAsync(a => a.Id != id && (a.Name == attribute.Name || a.Slug == slug)))
+            throw new InvalidOperationException("An attribute with this name already exists.");
+
         existing.Name = attribute.Name;
-        existing.Slug = attribute.Name.ToLowerInvariant().Replace(" ", "-");
+        existing.Slug = slug;
         existing.Category = attribute.Category;
         existing.DataType = attribute.DataType;
         existing.Description = attribute.Description;
@@ -54,6 +61,20 @@ public class AttributeService : IAttributeService
             ?? throw new InvalidOperationException("Attribute not found");
         _db.AttributeDefinitions.Remove(attribute);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<AttributeDefinition>> GetRecentlyUsedAsync(int count)
+    {
+        var ids = await _db.PositionAttributeRules
+            .OrderByDescending(r => r.Position!.CreatedAt)
+            .Select(r => r.AttributeDefinitionId)
+            .Distinct()
+            .Take(count)
+            .ToListAsync();
+        var attributes = await _db.AttributeDefinitions
+            .Where(a => ids.Contains(a.Id))
+            .ToListAsync();
+        return attributes.OrderBy(a => ids.IndexOf(a.Id)).ToList();
     }
 
     public async Task<List<AttributeOption>> GetOptionsAsync(Guid attributeId) =>

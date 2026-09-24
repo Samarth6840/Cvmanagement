@@ -12,4 +12,5 @@ public interface IAttributeService
     Task<List<AttributeOption>> GetOptionsAsync(Guid attributeId);
     Task<AttributeOption> AddOptionAsync(Guid attributeId, string label);
     Task RemoveOptionAsync(Guid attributeId, Guid optionId);
+    Task<List<AttributeDefinition>> GetRecentlyUsedAsync(int count);
 }

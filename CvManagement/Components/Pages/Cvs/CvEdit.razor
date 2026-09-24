@@ -1,9 +1,9 @@
 @page "/cvs/{Id}/edit"
 @using CvManagement.Services.Cv
-@using CvManagement.Services.Attributes
 @using CvManagement.Data.Entities.Cv
+@using CvManagement.Data.Entities.Attributes
+@using CvManagement.Data.Entities.Profiles
 @inject ICvService CvService
-@inject IAttributeService AttributeService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -15,12 +15,8 @@ else
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Edit CV: @_cv.Title</h3>
-        <div class="d-flex gap-2">
-            @if (_cv.Status == CvStatus.Draft)
-            {
-                <button class="btn btn-success btn-sm" @onclick="Publish">Publish</button>
-            }
-            else
+        <div class="d-flex gap-2 align-items-center">
+            @if (_cv.Status == CvStatus.Published)
             {
                 <button class="btn btn-warning btn-sm" @onclick="Unpublish">Unpublish</button>
             }
@@ -33,36 +29,134 @@ else
         <input type="text" class="form-control" @bind="_cv.Title" @onfocusout="SaveTitle" />
     </div>
 
-    @if (_attributeValues.Any())
+    @if (!string.IsNullOrEmpty(_saveMessage))
+    {
+        <div class="alert alert-success py-2">@_saveMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger py-2">@_error</div>
+    }
+    @if (_missing!.Any())
+    {
+        <div class="alert alert-warning">
+            Publish is locked until every required attribute (highlighted red) is filled: @string.Join(", ", _missing.Select(m => m.Name)).
+        </div>
+    }
+
+    @if (_definitions!.Any())
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Attributes</h5></div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Attributes</h5>
+                <button class="btn btn-primary btn-sm" @onclick="SaveValues">Save attributes</button>
+            </div>
             <div class="card-body">
-                <AttributeValueEditor Attributes="_attributes" Values="_attributeValues" />
+                @foreach (var def in _definitions)
+                {
+                    var value = GetValue(def.Id);
+                    var unfilled = def.IsRequired && !CvService.IsValueFilled(value);
+                    <div class="mb-3">
+                        <label class="form-label @(unfilled ? "text-danger fw-bold" : "")">
+                            @def.Name @(def.IsRequired ? "*" : "")
+                        </label>
+                        @if (unfilled)
+                        {
+                            <span class="text-danger">(required)</span>
+                        }
+                        <AttributeValueEditor Attribute="def"
+                                              Options="def.Options"
+                                              StringValue="value.StringValue"
+                                              StringValueChanged="v => ValueChanged(def.Id, x => x.StringValue = v)"
+                                              TextValue="value.TextValue"
+                                              TextValueChanged="v => ValueChanged(def.Id, x => x.TextValue = v)"
+                                              ImageUrl="value.ImageUrl"
+                                              ImageUrlChanged="v => ValueChanged(def.Id, x => x.ImageUrl = v)"
+                                              NumericValue="value.NumericValue"
+                                              NumericValueChanged="v => ValueChanged(def.Id, x => x.NumericValue = v)"
+                                              DateValue="value.DateValue"
+                                              DateValueChanged="v => ValueChanged(def.Id, x => x.DateValue = v)"
+                                              PeriodStart="value.PeriodStart"
+                                              PeriodStartChanged="v => ValueChanged(def.Id, x => x.PeriodStart = v)"
+                                              PeriodEnd="value.PeriodEnd"
+                                              PeriodEndChanged="v => ValueChanged(def.Id, x => x.PeriodEnd = v)"
+                                              BoolValue="value.BoolValue"
+                                              BoolValueChanged="v => ValueChanged(def.Id, x => x.BoolValue = v)"
+                                              SelectedOptionId="value.SelectedOptionId"
+                                              SelectedOptionIdChanged="v => ValueChanged(def.Id, x => x.SelectedOptionId = v)" />
+                    </div>
+                }
             </div>
         </div>
     }
 
-    <div class="d-flex gap-2">
-        <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
-    </div>
+    @if (_cv.Status == CvStatus.Draft)
+    {
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" @onclick="Publish" disabled="@(unfilledRequiredCount > 0)">Publish</button>
+            <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex gap-2">
+            <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
+        </div>
+    }
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
     private CvRecord? _cv;
-    private List<ProfileAttributeValue> _attributeValues = new();
-    private List<AttributeDefinition> _attributes = new();
+    private List<AttributeDefinition> _definitions = new();
+    private Dictionary<Guid, ProfileAttributeValue> _values = new();
+    private List<AttributeDefinition> _missing = new();
+    private string? _saveMessage;
+    private string? _error;
+
+    private int unfilledRequiredCount => _missing.Count;
 
     protected override async Task OnInitializedAsync()
     {
         _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
-        if (_cv is not null)
+        if (_cv is null) return;
+        _definitions = await CvService.GetCvAttributeDefinitionsAsync(_cv.Id);
+        foreach (var def in _definitions)
         {
-            _attributeValues = await CvService.GetCvAttributeValuesAsync(_cv.Id);
-            _attributes = _attributeValues.Select(v => v.AttributeDefinition).ToList();
+            _values[def.Id] = await CvService.GetCvAttributeValueAsync(_cv.Id, def.Id)
+                ?? new ProfileAttributeValue { AttributeDefinitionId = def.Id, AttributeDefinition = def };
         }
+        _missing = await CvService.GetMissingRequiredAttributesAsync(_cv.Id);
+    }
+
+    private ProfileAttributeValue GetValue(Guid id) => _values[id];
+
+    private void ValueChanged(Guid id, Action<ProfileAttributeValue> mutate)
+    {
+        mutate(_values[id]);
+        _saveMessage = null;
+        _error = null;
+    }
+
+    private async Task SaveValues()
+    {
+        _saveMessage = null;
+        _error = null;
+        foreach (var (defId, value) in _values)
+        {
+            try
+            {
+                await CvService.SaveAttributeValueAsync(_cv!.Id, value);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _error = ex.Message;
+                return;
+            }
+        }
+        _missing = await CvService.GetMissingRequiredAttributesAsync(_cv!.Id);
+        _saveMessage = "Attribute values saved to your profile.";
     }
 
     private async Task SaveTitle()
@@ -73,9 +167,17 @@ else
 
     private async Task Publish()
     {
-        if (_cv is null) return;
-        await CvService.PublishAsync(_cv.Id);
-        Navigation.NavigateTo($"/cvs/{_cv.Id}");
+        if (_cv is null || _missing.Any()) return;
+        try
+        {
+            await CvService.PublishAsync(_cv.Id);
+            Navigation.NavigateTo($"/cvs/{_cv.Id}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+            _missing = await CvService.GetMissingRequiredAttributesAsync(_cv.Id);
+        }
     }
 
     private async Task Unpublish()

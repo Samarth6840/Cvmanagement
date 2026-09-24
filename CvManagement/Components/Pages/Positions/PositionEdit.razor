@@ -55,10 +55,29 @@
     <div class="card mb-4">
         <div class="card-header"><h5 class="mb-0">Attribute Template</h5></div>
         <div class="card-body">
+            @if (_recentAttributes.Any())
+            {
+                <div class="mb-2">
+                    <small class="text-muted d-block mb-1">Recently used</small>
+                    @foreach (var attr in _recentAttributes)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary me-1 mb-1"
+                                @onclick="() => AddAttribute(attr.Id)"
+                                disabled="@(IsInTemplate(attr.Id))">@attr.Name</button>
+                    }
+                </div>
+            }
             <div class="d-flex gap-2 mb-3">
+                <select class="form-select form-select-sm w-auto" @bind="_categoryFilter">
+                    <option value="">All categories</option>
+                    @foreach (var cat in Enum.GetValues<AttributeCategory>())
+                    {
+                        <option value="@cat">@cat</option>
+                    }
+                </select>
                 <select class="form-select form-select-sm" @bind="_selectedAttrId">
                     <option value="">Select attribute...</option>
-                    @foreach (var attr in _allAttributes)
+                    @foreach (var attr in FilteredAttributes)
                     {
                         <option value="@attr.Id">@attr.Name (@attr.DataType)</option>
                     }
@@ -97,14 +116,22 @@
 
     private Position? _position;
     private List<AttributeDefinition> _allAttributes = new();
+    private List<AttributeDefinition> _recentAttributes = new();
     private List<PositionAttributeRule> _attributeRules = new();
     private List<string> _tags = new();
     private bool _isNew;
     private string _selectedAttrId = "";
+    private string _categoryFilter = "";
+
+    private List<AttributeDefinition> FilteredAttributes =>
+        string.IsNullOrEmpty(_categoryFilter)
+            ? _allAttributes
+            : _allAttributes.Where(a => a.Category.ToString() == _categoryFilter).ToList();
 
     protected override async Task OnInitializedAsync()
     {
         _allAttributes = await AttributeService.GetAllAsync();
+        _recentAttributes = await AttributeService.GetRecentlyUsedAsync(10);
 
         if (string.IsNullOrEmpty(Id) || Id == "new")
         {
@@ -122,14 +149,21 @@
         }
     }
 
-    private async Task AddAttributeRule()
+    private bool IsInTemplate(Guid attrId) => _attributeRules.Any(r => r.AttributeDefinitionId == attrId);
+
+    private async Task AddAttribute(Guid attrId)
     {
-        if (_position is null || string.IsNullOrEmpty(_selectedAttrId)) return;
-        var attrId = Guid.Parse(_selectedAttrId);
+        if (_position is null || IsInTemplate(attrId)) return;
         await PositionService.AddAttributeRuleAsync(_position.Id, attrId, false);
         var attr = _allAttributes.First(a => a.Id == attrId);
         _attributeRules.Add(new PositionAttributeRule { AttributeDefinition = attr, AttributeDefinitionId = attrId });
         _selectedAttrId = "";
+    }
+
+    private async Task AddAttributeRule()
+    {
+        if (_position is null || string.IsNullOrEmpty(_selectedAttrId)) return;
+        await AddAttribute(Guid.Parse(_selectedAttrId));
     }
 
     private async Task RemoveAttributeRule(PositionAttributeRule rule)

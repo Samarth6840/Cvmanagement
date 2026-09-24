@@ -1,0 +1,96 @@
+@page "/users/{Id}"
+@using CvManagement.Services.Profiles
+@using CvManagement.Services.Auth
+@using CvManagement.Data.Entities.Attributes
+@using CvManagement.Data.Entities.Profiles
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IProfileService ProfileService
+@inject ICurrentUserService CurrentUserService
+@rendermode InteractiveServer
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else if (_profile is null && _displayName is null)
+{
+    <p class="text-muted">User not found.</p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3>@(_profile?.User?.DisplayName ?? _displayName)</h3>
+            @if (_profile is not null)
+            {
+                <p class="text-muted">Member since @_profile.CreatedAt.ToString("MMM yyyy")</p>
+            }
+            else
+            {
+                <p class="text-muted">Registered user</p>
+            }
+            @if (_userId == _viewerId)
+            {
+                <a href="/profile" class="btn btn-outline-primary btn-sm">Go to my profile</a>
+            }
+        </div>
+    </div>
+
+    @if (_profile?.AttributeValues.Any() == true)
+    {
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Details</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    @foreach (var v in _profile.AttributeValues)
+                    {
+                        <dt class="col-sm-4">@v.AttributeDefinition.Name</dt>
+                        <dd class="col-sm-8">@GetValueDisplay(v)</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    }
+
+    <a href="/" class="btn btn-link ps-0 mt-3">Back to home</a>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private CandidateProfile? _profile;
+    private string? _displayName;
+    private bool _loading = true;
+    private Guid? _userId;
+    private Guid? _viewerId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(Id, out var userId))
+        {
+            _loading = false;
+            return;
+        }
+        _userId = userId;
+        _viewerId = await CurrentUserService.GetUserIdAsync();
+        _profile = await ProfileService.GetByUserIdAsync(userId);
+        if (_profile?.User is not null)
+            _displayName = _profile.User.DisplayName;
+        _loading = false;
+    }
+
+    private static string GetValueDisplay(ProfileAttributeValue v) =>
+        v.AttributeDefinition.DataType switch
+        {
+            AttributeDataType.String => v.StringValue ?? "",
+            AttributeDataType.Text => v.TextValue ?? "",
+            AttributeDataType.Image => string.IsNullOrEmpty(v.ImageUrl) ? "" : $"🖼 {v.ImageUrl}",
+            AttributeDataType.Numeric => v.NumericValue?.ToString() ?? "",
+            AttributeDataType.Date => v.DateValue?.ToString("MMM dd, yyyy") ?? "",
+            AttributeDataType.Period => $"{v.PeriodStart?.ToString("MMM yyyy")} - {v.PeriodEnd?.ToString("MMM yyyy") ?? "Present"}",
+            AttributeDataType.Boolean => v.BoolValue == true ? "Yes" : "No",
+            AttributeDataType.OneOfMany => v.SelectedOption?.Label ?? "",
+            _ => ""
+        };
+}

@@ -22,18 +22,24 @@ public class LikeService : ILikeService
         var existing = await _db.CvLikes
             .FirstOrDefaultAsync(l => l.UserId == userId && l.CvRecordId == cvRecordId);
 
+        bool liked;
         if (existing is not null)
         {
             _db.CvLikes.Remove(existing);
-            await _db.SaveChangesAsync();
-            return false;
+            liked = false;
         }
         else
         {
             _db.CvLikes.Add(new CvLike { UserId = userId, CvRecordId = cvRecordId });
-            await _db.SaveChangesAsync();
-            return true;
+            liked = true;
         }
+
+        var cv = await _db.CvRecords.FindAsync(cvRecordId);
+        if (cv is not null)
+            cv.LikeCount = Math.Max(0, cv.LikeCount + (liked ? 1 : -1));
+
+        await _db.SaveChangesAsync();
+        return liked;
     }
 
     public async Task<int> GetLikeCountAsync(Guid cvRecordId) =>

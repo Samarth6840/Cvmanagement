@@ -1,3 +1,4 @@
+using CvManagement.Services.Positions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Search;
@@ -45,10 +46,42 @@ public class SearchService : ISearchService
                 JOIN ""CandidateProfiles"" cp ON c.""CandidateProfileId"" = cp.""Id""
                 JOIN ""Users"" u ON cp.""UserId"" = u.""Id""
                 WHERE c.""SearchVector"" @@ plainto_tsquery('english', {query})
+                  AND c.""Status"" = 1
                 ORDER BY ""Rank"" DESC
-                LIMIT 20")
+                LIMIT 50")
             .ToListAsync();
 
-        return positionResults.Concat(cvResults).ToList();
+        var visibleCvResults = new List<SearchResult>();
+        foreach (var result in cvResults)
+        {
+            // ponytail: per-CV access check in memory; fine for demo scale
+            if (await IsCvVisibleAsync(result.Id))
+                visibleCvResults.Add(result);
+        }
+
+        return positionResults
+            .Concat(visibleCvResults.Where(x => x.Type == "CV").OrderByDescending(x => x.Rank))
+            .ToList();
+    }
+
+    private async Task<bool> IsCvVisibleAsync(Guid cvRecordId)
+    {
+        var cv = await _db.CvRecords
+            .Where(c => c.Id == cvRecordId)
+            .Select(c => new { c.PositionId, c.CandidateProfileId })
+            .FirstOrDefaultAsync();
+        if (cv is null) return false;
+
+        var rules = await _db.PositionAccessRules
+            .Include(r => r.AttributeDefinition)
+            .Where(r => r.PositionId == cv.PositionId)
+            .ToListAsync();
+        if (rules.Count == 0) return true;
+
+        var values = await _db.ProfileAttributeValues
+            .Include(v => v.SelectedOption)
+            .Where(v => v.CandidateProfileId == cv.CandidateProfileId)
+            .ToListAsync();
+        return AccessRuleEvaluator.CanAccess(rules, values);
     }
 }

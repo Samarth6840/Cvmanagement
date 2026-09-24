@@ -1,7 +1,169 @@
 ﻿@page "/"
+@using CvManagement.Services.Positions
+@using CvManagement.Services.Auth
+@inject IPositionService PositionService
+@inject ICurrentUserService CurrentUser
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>CV Management</PageTitle>
 
-<h1>Hello, world!</h1>
+<h3 class="mb-4">CV Management System</h3>
 
-Welcome to your new app.
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-2">
+        <div class="card shadow-sm"><div class="card-body text-center">
+            <div class="fs-4 fw-bold">@_stats.Positions</div>
+            <div class="text-muted small">Positions</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card shadow-sm"><div class="card-body text-center">
+            <div class="fs-4 fw-bold">@_stats.Candidates</div>
+            <div class="text-muted small">Candidates</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card shadow-sm"><div class="card-body text-center">
+            <div class="fs-4 fw-bold">@_stats.Recruiters</div>
+            <div class="text-muted small">Recruiters</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card shadow-sm"><div class="card-body text-center">
+            <div class="fs-4 fw-bold">@_stats.Cvs24h</div>
+            <div class="text-muted small">New CVs (24 h)</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card shadow-sm"><div class="card-body text-center">
+            <div class="fs-4 fw-bold">@_stats.TotalCvs</div>
+            <div class="text-muted small">Submitted CVs</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">Latest Positions</div>
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>CVs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pos in _latest)
+                        {
+                            <tr>
+                                <td><a href="/positions/@pos.Id">@pos.Title</a></td>
+                                <td>@pos.Company</td>
+                                <td>
+                                    <span class="badge @(pos.IsOpen ? "bg-success" : "bg-secondary")">@(pos.IsOpen ? "Open" : "Closed")</span>
+                                    @if (!pos.IsPublic)
+                                    {
+                                        <span class="badge bg-warning text-dark">Restricted</span>
+                                    }
+                                </td>
+                                <td>@pos.CvRecords.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Most Popular Positions</div>
+            <div class="card-body p-0">
+                @if (_popular.Any())
+                {
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Company</th>
+                                <th>CVs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < _popular.Count; i++)
+                            {
+                                var pos = _popular[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td><a href="/positions/@pos.Id">@pos.Title</a></td>
+                                    <td>@pos.Company</td>
+                                    <td>@pos.CvRecords.Count</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="p-3 text-muted">No CVs submitted yet.</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header">Technology Tags</div>
+            <div class="card-body">
+                @if (_tags.Any())
+                {
+                    foreach (var (tag, count) in _tags)
+                    {
+                        <a href="/search?q=@Uri.EscapeDataString(tag)"
+                           class="badge rounded-pill text-bg-light me-1 mb-1"
+                           style="font-size: @(11 + Math.Min(count, 8))px">
+                            @tag <span class="opacity-50">@count</span>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No tags yet.</span>
+                }
+                <div class="text-muted small mt-2">
+                    @if (_isRecruiter)
+                    {
+                        <span>Searching a tag opens CVs for recruiters.</span>
+                    }
+                    else
+                    {
+                        <span>Searching a tag opens matching positions for candidates.</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Position> _latest = new();
+    private List<Position> _popular = new();
+    private List<(string Tag, int Count)> _tags = new();
+    private (int Positions, int Candidates, int Recruiters, int Cvs24h, int TotalCvs) _stats;
+    private bool _isRecruiter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isRecruiter = await CurrentUser.IsInRoleAsync("Recruiter") || await CurrentUser.IsInRoleAsync("Administrator");
+        _latest = (await PositionService.GetLatestAsync(10))
+            .Where(p => _isRecruiter || p.IsPublic)
+            .ToList();
+        _popular = (await PositionService.GetMostPopularAsync(5))
+            .Where(p => _isRecruiter || p.IsPublic)
+            .ToList();
+        _tags = await PositionService.GetTagCountsAsync();
+        _stats = await PositionService.GetLandingStatsAsync();
+    }
+}

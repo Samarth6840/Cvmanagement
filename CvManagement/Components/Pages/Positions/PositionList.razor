@@ -1,8 +1,10 @@
 @page "/positions"
 @using CvManagement.Services.Positions
 @using CvManagement.Services.Auth
+@using CvManagement.Services.Profiles
 @inject IPositionService PositionService
 @inject ICurrentUserService CurrentUserService
+@inject IProfileService ProfileService
 @rendermode InteractiveServer
 
 <h3>Positions</h3>
@@ -47,10 +49,28 @@
 @code {
     private List<Position> _positions = new();
     private bool _isRecruiter;
+    private bool _isCandidate;
 
     protected override async Task OnInitializedAsync()
     {
         _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
-        _positions = await PositionService.GetAllAsync();
+        _isCandidate = await CurrentUserService.IsInRoleAsync("Candidate");
+        if (_isRecruiter)
+        {
+            _positions = await PositionService.GetAllAsync();
+        }
+        else if (_isCandidate)
+        {
+            var userId = await CurrentUserService.GetUserIdAsync();
+            if (userId is not null)
+            {
+                var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+                _positions = await PositionService.GetAccessiblePositionsAsync(profile.Id);
+            }
+        }
+        else
+        {
+            _positions = await PositionService.GetAllAsync(publicOnly: true);
+        }
     }
 }

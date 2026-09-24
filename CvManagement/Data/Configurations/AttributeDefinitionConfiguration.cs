@@ -10,6 +10,7 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
     {
         b.HasKey(e => e.Id);
         b.HasIndex(e => e.Slug).IsUnique();
+        b.HasIndex(e => e.Name).IsUnique();
         b.Property(e => e.Name).HasMaxLength(128);
         b.Property(e => e.Slug).HasMaxLength(128);
         b.Property(e => e.Description).HasMaxLength(1024);

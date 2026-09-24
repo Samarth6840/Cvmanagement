@@ -1,6 +1,8 @@
 @page "/search"
 @using CvManagement.Services.Search
+@using CvManagement.Services.Auth
 @inject ISearchService SearchService
+@inject ICurrentUserService CurrentUserService
 @rendermode InteractiveServer
 
 <h3>Search Results</h3>
@@ -59,10 +61,15 @@ else if (!string.IsNullOrEmpty(_query))
 
     protected override async Task OnInitializedAsync()
     {
+        var isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
         if (!string.IsNullOrWhiteSpace(_query))
         {
             _loading = true;
-            _results = await SearchService.SearchAsync(_query!);
+            var results = await SearchService.SearchAsync(_query!);
+            // Recruiters land on CVs first, candidates/anon on positions first (§11).
+            _results = isRecruiter
+                ? results.OrderByDescending(r => r.Type == "CV").ThenByDescending(r => r.Rank).ToList()
+                : results.OrderByDescending(r => r.Type == "Position").ThenByDescending(r => r.Rank).ToList();
             _loading = false;
         }
     }

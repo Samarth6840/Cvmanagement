@@ -18,7 +18,14 @@
         <div class="card-body">
             <p>Creating CV for position: <strong>@_position.Title</strong></p>
 
-            @if (_existingCv is not null)
+            @if (!_canAccess)
+            {
+                <div class="alert alert-warning">
+                    Your profile does not match this position's access rules, so you cannot create a CV for it.
+                    <a href="/positions">Browse positions</a>.
+                </div>
+            }
+            else if (_existingCv is not null)
             {
                 <div class="alert alert-warning">
                     You already have a CV for this position.
@@ -47,6 +54,7 @@ else
     private Data.Entities.Positions.Position? _position;
     private CvRecord? _existingCv;
     private string _title = "";
+    private bool _canAccess;
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,8 +65,12 @@ else
         if (userId is not null)
         {
             var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
-            var existingCvs = await CvService.GetCandidateCvsAsync(profile.Id);
-            _existingCv = existingCvs.FirstOrDefault(c => c.PositionId == posId);
+            _canAccess = await PositionService.CanCandidateAccessAsync(profile.Id, posId);
+            if (_canAccess)
+            {
+                var existingCvs = await CvService.GetCandidateCvsAsync(profile.Id);
+                _existingCv = existingCvs.FirstOrDefault(c => c.PositionId == posId);
+            }
         }
 
         _title = $"My CV for {_position?.Title ?? "Position"}";
@@ -67,7 +79,7 @@ else
     private async Task CreateCv()
     {
         var userId = await CurrentUserService.GetUserIdAsync();
-        if (userId is null) return;
+        if (userId is null || !_canAccess) return;
 
         var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
         var cv = await CvService.CreateAsync(profile.Id, Guid.Parse(PositionId), _title, userId.Value);

@@ -7,8 +7,19 @@ using CvManagement.Data.Entities.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) &&
+    uri.Scheme is "postgres" or "postgresql")
+{
+    var info = uri.UserInfo.Split(':', 2);
+    connectionString = $"Host={uri.Host};Port={(uri.IsDefaultPort ? 5432 : uri.Port)};Database={uri.AbsolutePath.TrimStart('/')};" +
+                       $"Username={Uri.UnescapeDataString(info[0])};" +
+                       $"Password={Uri.UnescapeDataString(info.Length > 1 ? info[1] : "")};" +
+                       "SSL Mode=Require";
+}
+
 builder.Services.AddDbContext<CvDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {

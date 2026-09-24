@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NpgsqlTypes;
 
 namespace CvManagement.Data.Entities.Positions;
 
@@ -28,6 +29,8 @@ public class Position : IAuditable
 
     [Timestamp]
     public byte[] RowVersion { get; set; } = [];
+
+    public NpgsqlTsVector SearchVector { get; set; } = NpgsqlTsVector.Empty;
 
     public ApplicationUser CreatedByUser { get; set; } = null!;
 

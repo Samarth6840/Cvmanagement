@@ -1,0 +1,20 @@
+databases:
+  - name: cvmanagement-db
+    databaseName: cvmanagement
+    user: cvmanagement
+
+services:
+  - type: web
+    name: cvmanagement
+    runtime: docker
+    repo: https://github.com/Samarth6840/Cvmanagement
+    dockerfilePath: ./Dockerfile
+    stickySessions: true
+    healthCheckPath: /
+    envVars:
+      - key: CONNECTIONSTRINGS__DEFAULTCONNECTION
+        fromDatabase:
+          name: cvmanagement-db
+          property: connectionString
+      - key: ASPNETCORE_ENVIRONMENT
+        value: production

@@ -15,7 +15,7 @@ public class PositionConfiguration : IEntityTypeConfiguration<Position>
         b.HasIndex(e => e.CreatedByUserId);
         b.Property(e => e.RowVersion).IsRowVersion();
 
-        b.Property<string>("SearchVector").HasColumnType("tsvector");
+        b.Property(e => e.SearchVector);
         b.HasIndex("SearchVector").HasMethod("gin");
 
         b.HasMany(e => e.AttributeRules)

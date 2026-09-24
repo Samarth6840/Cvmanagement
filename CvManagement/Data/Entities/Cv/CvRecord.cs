@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NpgsqlTypes;
 
 namespace CvManagement.Data.Entities.Cv;
 
@@ -25,6 +26,8 @@ public class CvRecord : IAuditable
 
     [Timestamp]
     public byte[] RowVersion { get; set; } = [];
+
+    public NpgsqlTsVector SearchVector { get; set; } = NpgsqlTsVector.Empty;
 
     public CandidateProfile CandidateProfile { get; set; } = null!;
 

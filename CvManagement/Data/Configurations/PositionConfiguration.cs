@@ -13,7 +13,7 @@ public class PositionConfiguration : IEntityTypeConfiguration<Position>
         b.HasIndex(e => e.IsPublic);
         b.HasIndex(e => e.CreatedAt);
         b.HasIndex(e => e.CreatedByUserId);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsRowVersion().IsRequired(false);
 
         b.Property(e => e.SearchVector);
         b.HasIndex("SearchVector").HasMethod("gin");

@@ -13,7 +13,7 @@ public class CvRecordConfiguration : IEntityTypeConfiguration<CvRecord>
         b.HasIndex(e => e.PositionId);
         b.HasIndex(e => e.Status);
         b.HasIndex(e => e.CreatedByUserId);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsRowVersion().IsRequired(false);
 
         b.Property(e => e.SearchVector);
         b.HasIndex("SearchVector").HasMethod("gin");

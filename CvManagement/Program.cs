@@ -34,9 +34,6 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
-    .AddCookie(IdentityConstants.ApplicationScheme);
-
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RecruiterOnly", p => p.RequireRole("Recruiter", "Administrator"))
     .AddPolicy("AdminOnly", p => p.RequireRole("Administrator"))
@@ -80,8 +77,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(Program).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.MapHub<CvManagement.Hubs.DiscussionHub>("/hubs/discussion");
 

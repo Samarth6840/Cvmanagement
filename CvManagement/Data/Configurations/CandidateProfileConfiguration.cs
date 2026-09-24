@@ -10,7 +10,7 @@ public class CandidateProfileConfiguration : IEntityTypeConfiguration<CandidateP
     {
         b.HasKey(e => e.Id);
         b.HasIndex(e => e.UserId).IsUnique();
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsRowVersion().IsRequired(false);
 
         b.HasOne(e => e.User)
             .WithOne(u => u.CandidateProfile)

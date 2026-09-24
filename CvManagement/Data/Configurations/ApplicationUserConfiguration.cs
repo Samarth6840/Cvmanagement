@@ -14,6 +14,6 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         b.Property(e => e.DisplayName).HasMaxLength(128);
         b.Property(e => e.PreferredLanguage).HasMaxLength(10);
         b.Property(e => e.PreferredTheme).HasMaxLength(10);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsRowVersion().IsRequired(false);
     }
 }

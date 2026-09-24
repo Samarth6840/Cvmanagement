@@ -13,7 +13,7 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         b.Property(e => e.Name).HasMaxLength(128);
         b.Property(e => e.Slug).HasMaxLength(128);
         b.Property(e => e.Description).HasMaxLength(1024);
-        b.Property(e => e.RowVersion).IsRowVersion();
+        b.Property(e => e.RowVersion).IsRowVersion().IsRequired(false);
 
         b.HasMany(e => e.Options)
             .WithOne(o => o.AttributeDefinition)

@@ -1,11 +1,13 @@
 databases:
   - name: cvmanagement-db
+    plan: free
     databaseName: cvmanagement
     user: cvmanagement
 
 services:
   - type: web
     name: cvmanagement
+    plan: free
     runtime: docker
     repo: https://github.com/Samarth6840/Cvmanagement
     dockerfilePath: ./Dockerfile

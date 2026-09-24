@@ -14,6 +14,11 @@
             <div class="alert alert-danger">@ErrorMessage</div>
         }
 
+        @if (QueryError is not null)
+        {
+            <div class="alert alert-danger">@QueryError</div>
+        }
+
         <form @onsubmit="HandleLogin">
             <div class="mb-3">
                 <label class="form-label">Email</label>
@@ -26,6 +31,11 @@
             <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
         </form>
 
+        <div class="d-flex gap-2 mt-2">
+            <a class="btn btn-outline-secondary w-100" href="/external-login/Google">Google</a>
+            <a class="btn btn-outline-secondary w-100" href="/external-login/GitHub">GitHub</a>
+        </div>
+
         <div class="text-center mt-3">
             <a href="/register">Create an account</a>
         </div>
@@ -35,8 +45,21 @@
 @code {
     public string Email { get; set; } = "";
     public string Password { get; set; } = "";
+    [SupplyParameterFromQuery] public string? error { get; set; }
 
     private string? ErrorMessage;
+
+    private string? QueryError =>
+        error switch
+        {
+            "provider-not-configured" => "Google/GitHub sign-in isn't configured yet.",
+            "external-failed" => "External sign-in failed. Try again.",
+            "no-email" => "Your account has no verified email.",
+            "account-failed" => "Could not create your account.",
+            "role-failed" => "Could not assign your role.",
+            "link-failed" => "Could not link the provider to your account.",
+            _ => null
+        };
 
     private async Task HandleLogin()
     {

@@ -1,6 +1,10 @@
+using System.Security.Claims;
+using AspNet.Security.OAuth.GitHub;
 using CvManagement.Components;
 using CvManagement.Data;
 using CvManagement.Data.Seed;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using CvManagement.Data.Entities.Identity;
@@ -33,6 +37,32 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 })
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
+
+var authBuilder = builder.Services.AddAuthentication();
+
+var googleId = builder.Configuration["Authentication:Google:ClientId"];
+var googleSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleId))
+{
+    authBuilder.AddGoogle(o =>
+    {
+        o.ClientId = googleId;
+        o.ClientSecret = googleSecret ?? "";
+        o.SignInScheme = IdentityConstants.ExternalScheme;
+    });
+}
+
+var gitHubId = builder.Configuration["Authentication:GitHub:ClientId"];
+var gitHubSecret = builder.Configuration["Authentication:GitHub:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(gitHubId))
+{
+    authBuilder.AddGitHub(o =>
+    {
+        o.ClientId = gitHubId;
+        o.ClientSecret = gitHubSecret ?? "";
+        o.SignInScheme = IdentityConstants.ExternalScheme;
+    });
+}
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RecruiterOnly", p => p.RequireRole("Recruiter", "Administrator"))
@@ -80,6 +110,77 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<CvManagement.Hubs.DiscussionHub>("/hubs/discussion");
+
+var externalSchemas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    ["Google"] = GoogleDefaults.AuthenticationScheme,
+    ["GitHub"] = GitHubAuthenticationDefaults.AuthenticationScheme,
+};
+
+app.MapGet("/external-login/{provider}", (string provider, HttpContext ctx, IConfiguration config) =>
+{
+    var scheme = externalSchemas.GetValueOrDefault(provider);
+    var clientId = config[$"Authentication:{provider}:ClientId"];
+    if (scheme is null || string.IsNullOrEmpty(clientId))
+        return Results.Redirect("/login?error=provider-not-configured");
+
+    return Results.Challenge(new AuthenticationProperties
+    {
+        RedirectUri = "/external-callback"
+    }, new[] { scheme });
+});
+
+app.MapGet("/external-callback", async (HttpContext ctx, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) =>
+{
+    var info = await signInManager.GetExternalLoginInfoAsync();
+    if (info is null)
+        return Results.Redirect("/login?error=external-failed");
+
+    if (signInManager.IsSignedIn(ctx.User))
+    {
+        var existing = await userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+        if (existing is not null)
+            return Results.Redirect("/");
+
+        var current = await userManager.GetUserAsync(ctx.User);
+        var link = await userManager.AddLoginAsync(current, info);
+        return Results.Redirect(link.Succeeded ? "/" : "/login?error=link-failed");
+    }
+
+    var result = await signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+    if (result.Succeeded)
+        return Results.Redirect("/");
+
+    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+    if (string.IsNullOrEmpty(email))
+        return Results.Redirect("/login?error=no-email");
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email,
+            EmailConfirmed = true
+        };
+        var created = await userManager.CreateAsync(user);
+        if (!created.Succeeded)
+            return Results.Redirect("/login?error=account-failed");
+
+        var roleResult = await userManager.AddToRoleAsync(user, "Candidate");
+        if (!roleResult.Succeeded)
+            return Results.Redirect("/login?error=role-failed");
+    }
+
+    var addLogin = await userManager.AddLoginAsync(user, info);
+    if (!addLogin.Succeeded)
+        return Results.Redirect("/login?error=link-failed");
+
+    await signInManager.SignInAsync(user, isPersistent: false);
+    return Results.Redirect("/");
+});
 
 using (var scope = app.Services.CreateScope())
 {

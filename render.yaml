@@ -9,7 +9,6 @@ services:
     runtime: docker
     repo: https://github.com/Samarth6840/Cvmanagement
     dockerfilePath: ./Dockerfile
-    stickySessions: true
     healthCheckPath: /
     envVars:
       - key: CONNECTIONSTRINGS__DEFAULTCONNECTION

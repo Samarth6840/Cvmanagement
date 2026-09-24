@@ -19,3 +19,17 @@ services:
           property: connectionString
       - key: ASPNETCORE_ENVIRONMENT
         value: production
+      - key: Authentication__Google__ClientId
+        sync: false
+      - key: Authentication__Google__ClientSecret
+        sync: false
+      - key: Authentication__GitHub__ClientId
+        sync: false
+      - key: Authentication__GitHub__ClientSecret
+        sync: false
+      - key: Cloudinary__CloudName
+        sync: false
+      - key: Cloudinary__ApiKey
+        sync: false
+      - key: Cloudinary__ApiSecret
+        sync: false

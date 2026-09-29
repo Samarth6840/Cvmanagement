@@ -1,9 +1,5 @@
 @using System.Globalization
 
-@* The single renderer for the technology tag cloud (spec §11). Sizing by frequency lives
-   here rather than in the landing page, and the link target follows the viewer's role: a tag
-   opens CVs for a Recruiter and positions for a candidate. *@
-
 @if (Tags.Count == 0)
 {
     <span class="text-muted">@Loc["Home.NoTags"]</span>
@@ -21,14 +17,11 @@ else
 }
 
 @code {
-    // Smallest size, plus one pixel per use up to the cap so a single popular tag cannot
-    // dominate the cloud.
     private const int BaseFontSize = 11;
     private const int MaxFrequencyBonus = 8;
 
     [Parameter] public IReadOnlyList<(string Tag, int Count)> Tags { get; set; } = [];
 
-    /// <summary>When true a tag searches CVs; otherwise it searches positions.</summary>
     [Parameter] public bool LinksToCvs { get; set; }
 
     private string BuildHref(string tag) =>

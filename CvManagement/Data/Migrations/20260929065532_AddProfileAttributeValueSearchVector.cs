@@ -5,10 +5,8 @@ using NpgsqlTypes;
 
 namespace CvManagement.Data.Migrations
 {
-    /// <inheritdoc />
     public partial class AddProfileAttributeValueSearchVector : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<NpgsqlTsVector>(
@@ -51,7 +49,6 @@ namespace CvManagement.Data.Migrations
                 """);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(

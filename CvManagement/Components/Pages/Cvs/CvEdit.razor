@@ -166,8 +166,6 @@ else
 
         try
         {
-            // One transaction for the whole form: the previous per-attribute loop could
-            // commit N-1 values and silently drop the rest on the first failure.
             await CvService.SaveAttributeValuesAsync(_cv.Id, _values.Values);
         }
         catch (InvalidOperationException ex)

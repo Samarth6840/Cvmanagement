@@ -1,9 +1,3 @@
-// Tagify wrapper (spec §5.3 / §13a.1): a ready-made tag input with autocomplete from the
-// tags already entered elsewhere in the system.
-//
-// Tagify builds its own input inside the host element and the host has no Blazor children,
-// so Blazor and Tagify never manage the same nodes.
-
 const inputs = new Map();
 
 export async function init(host, initialTags, whitelist, placeholder, dotNetRef) {
@@ -74,6 +68,5 @@ async function notifyTags(dotNetRef, tags) {
     try {
         await dotNetRef.invokeMethodAsync("OnTagsChangedJs", tags);
     } catch {
-        // Circuit disposed; the tags live in the parent's state anyway.
     }
 }

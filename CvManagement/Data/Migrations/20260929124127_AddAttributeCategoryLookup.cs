@@ -4,18 +4,8 @@
 
 namespace CvManagement.Data.Migrations
 {
-    /// <summary>
-    /// Spec §13.1: the category becomes a lookup table referenced by <c>category_id</c> instead
-    /// of an inline enum value.
-    ///
-    /// The generated column rename preserves the old 0-7 enum values, so the lookup rows are
-    /// seeded and every existing row is shifted by one to the new stable ids *before* the
-    /// foreign key is added. Ordering matters: adding the constraint first would fail on the old
-    /// values, and rewriting the column afterwards would lose them.
-    /// </summary>
     public partial class AddAttributeCategoryLookup : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
@@ -36,8 +26,6 @@ namespace CvManagement.Data.Migrations
                     table.PrimaryKey("PK_AttributeCategories", x => x.Id);
                 });
 
-            // Fixed, seeded lookup list. Mirrors AttributeCategoryCatalog; the ids are stable and
-            // are referenced from code, so they are inserted explicitly rather than generated.
             migrationBuilder.Sql(
                 """
                 INSERT INTO "AttributeCategories" ("Id", "Name", "SortOrder") VALUES
@@ -51,7 +39,6 @@ namespace CvManagement.Data.Migrations
                     (8, 'Other', 8);
                 """);
 
-            // Certification = 0 ... Other = 7 all shift to their new 1-8 ids.
             migrationBuilder.Sql(
                 """UPDATE "AttributeDefinitions" SET "CategoryId" = "CategoryId" + 1;""");
 
@@ -75,7 +62,6 @@ namespace CvManagement.Data.Migrations
                 onDelete: ReferentialAction.Restrict);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
@@ -86,7 +72,6 @@ namespace CvManagement.Data.Migrations
                 name: "IX_AttributeDefinitions_CategoryId",
                 table: "AttributeDefinitions");
 
-            // Back into the enum range before the lookup table disappears.
             migrationBuilder.Sql(
                 """UPDATE "AttributeDefinitions" SET "CategoryId" = "CategoryId" - 1;""");
 

@@ -5,9 +5,6 @@
     min-height: 100vh;
 }
 
-/* Above the lg breakpoint the offcanvas classes are inert, so the same element serves as a
-   plain sticky sidebar. Bootstrap keeps .offcanvas-lg-* rules inside a min-width media
-   query, which is what makes this work without a second markup tree. */
 .sidebar {
     position: sticky;
     top: 56px;

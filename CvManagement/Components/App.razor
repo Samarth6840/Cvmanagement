@@ -1,6 +1,5 @@
 ﻿<!DOCTYPE html>
-@* Server-rendered, so the request's culture is already resolved here. Hardcoding lang="en"
-   would tell screen readers to pronounce Polish copy in English. *@
+
 <html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName" data-bs-theme="light">
 
 <head>
@@ -12,8 +11,7 @@
     <link rel="stylesheet" href="@Assets["css/themes.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["CvManagement.styles.css"]" />
-    @* Ready-made Markdown editor and tag input, loaded from a CDN (spec §13a.1).
-       Both components degrade to their plain form if the CDN is unreachable. *@
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@@2.18.0/dist/easymde.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@yaireo/tagify@@4.26.5/dist/tagify.css" />
     <ImportMap />
@@ -27,14 +25,12 @@
     </CascadingAuthenticationState>
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
-    @* Vendored, not CDN: the responsive nav, dropdowns and language picker are all Bootstrap
-       JS. A CDN outage would take navigation with it. *@
+
     <script src="@Assets["lib/bootstrap/dist/js/bootstrap.bundle.min.js"]"></script>
     <script src="@Assets["js/theme-toggle.js"]"></script>
     <script src="https://cdn.jsdelivr.net/npm/easymde@@2.18.0/dist/easymde.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@yaireo/tagify@@4.26.5/dist/tagify.min.js"></script>
-    @* Cloudinary's official upload widget. Images are posted straight to Cloudinary from the
-       browser; if this script is unavailable the uploader falls back to a direct upload. *@
+
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 </body>
 

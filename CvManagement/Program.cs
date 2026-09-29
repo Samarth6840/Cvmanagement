@@ -13,14 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CvManagement.Data.Entities.Identity;
 
-// In-memory check for the access-rule evaluator, so the logic is verifiable without a database.
-//   dotnet run --project CvManagement -- --selfcheck
-if (args.Contains("--selfcheck"))
-{
-    await CvManagement.SelfCheck.RunAsync();
-    return;
-}
-
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
@@ -46,14 +38,11 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     options.Password.RequireLowercase = true;
     options.SignIn.RequireConfirmedAccount = false;
     options.User.RequireUniqueEmail = true;
-    // Administrators block an account by setting a far-future lockout end (spec §3.7).
     options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
 
-// Identity's defaults point at "/Account/Login", which this app does not have; every
-// protected page would dead-end on a 404. The pages here are /login and /access-denied.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/login";
@@ -109,8 +98,6 @@ builder.Services.AddScoped<CvManagement.Services.Admin.IAdminUserService, CvMana
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-// The culture is set per request from a cookie, which the /culture/set endpoint writes.
-// Logging in does not change it: a visitor picks a language, and it sticks.
 const string CultureCookieName = ".CvManagement.Culture";
 var supportedCultures = CvManagement.SupportedLanguages.All.Select(l => new CultureInfo(l.Code)).ToList();
 
@@ -145,18 +132,12 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ponytail: the culture cookie is the single source of truth for language, for signed-in
-// and anonymous visitors alike. ApplicationUser.PreferredLanguage records the same choice so
-// it survives a cookie clear, but is not read on the request path: doing so would cost a
-// user lookup per request just to render text.
 app.MapPost("/culture/set", async (
     HttpContext context,
     IAntiforgery antiforgery,
     [FromForm] string culture,
     [FromForm] string? redirectUri) =>
 {
-    // Validated explicitly: this endpoint flips a cookie, so a cross-site POST must not
-    // be able to trigger it.
     await antiforgery.ValidateRequestAsync(context);
 
     var code = CvManagement.SupportedLanguages.Normalize(culture);
@@ -169,7 +150,6 @@ app.MapPost("/culture/set", async (
         Expires = DateTimeOffset.UtcNow.AddYears(1)
     });
 
-    // Mirror onto the account so the preference is not lost with the cookie.
     var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
     if (userId is not null && Guid.TryParse(userId, out var id))
     {
@@ -183,7 +163,6 @@ app.MapPost("/culture/set", async (
         }
     }
 
-    // Only ever bounce back inside this app; an absolute URL here is an open redirect.
     var target = !string.IsNullOrEmpty(redirectUri) && redirectUri.StartsWith('/') && !redirectUri.StartsWith("//")
         ? redirectUri
         : "/";
@@ -209,8 +188,6 @@ app.MapGet("/external-login/{provider}", (string provider, IConfiguration config
     if (scheme is null || string.IsNullOrEmpty(clientId))
         return Results.Redirect("/login?error=provider-not-configured");
 
-    // The return target rides along so a social sign-in also lands back where the visitor
-    // was headed, exactly like the password form.
     var callback = string.IsNullOrEmpty(returnUrl)
         ? "/external-callback"
         : $"/external-callback?returnUrl={Uri.EscapeDataString(returnUrl)}";
@@ -223,7 +200,6 @@ app.MapGet("/external-login/{provider}", (string provider, IConfiguration config
 
 app.MapGet("/external-callback", async (HttpContext ctx, string? returnUrl, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) =>
 {
-    // Only a path inside this app is honoured; an absolute URL would be an open redirect.
     var target = !string.IsNullOrEmpty(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
         ? returnUrl
         : "/";
@@ -291,8 +267,6 @@ using (var scope = app.Services.CreateScope())
     await IdentitySeed.SeedAsync(scope.ServiceProvider);
     await AttributeSeed.SeedBuiltInAttributesAsync(scope.ServiceProvider);
 
-    // Sample content is on in Development (so a local run is not empty) and off elsewhere
-    // unless an operator opts in. It never touches a database that already has content.
     var seedDemoData = builder.Configuration.GetValue<bool?>("Seed:DemoData")
         ?? app.Environment.IsDevelopment();
     await DemoDataSeed.SeedAsync(scope.ServiceProvider, seedDemoData);

@@ -5,9 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Projects;
 
-// Spec §5.3 / §3.5: projects belong to a candidate's own profile. Listing, editing and
-// deleting are all scoped to the owning profile, so one candidate can never touch another
-// candidate's projects — and a Recruiter's read-only CV view is not a write path.
 public interface IProjectService
 {
     Task<List<Project>> GetForCandidateAsync(Guid candidateProfileId);
@@ -60,8 +57,6 @@ public class ProjectService : IProjectService
         project.CreatedAt = DateTimeOffset.UtcNow;
         project.Tags = tags.Select(tag => new ProjectTag { Tag = tag }).ToList();
 
-        // The link is what makes the project the candidate's own; it is written together
-        // with the project in one save so a project can never exist unowned.
         _db.Projects.Add(project);
         _db.CandidateProjects.Add(new CandidateProject
         {
@@ -73,7 +68,6 @@ public class ProjectService : IProjectService
         return project;
     }
 
-    // Optimistic locking (spec §4).
     public async Task<Project> UpdateForCandidateAsync(
         Guid candidateProfileId,
         Guid projectId,
@@ -112,8 +106,6 @@ public class ProjectService : IProjectService
         return existing;
     }
 
-    // Removes the candidate's own link. The project row itself is only deleted when nobody
-    // else references it, so a shared project is not pulled out from under another profile.
     public async Task DeleteForCandidateAsync(Guid candidateProfileId, Guid projectId)
     {
         await EnsureOwnedAsync(candidateProfileId, projectId);
@@ -135,8 +127,6 @@ public class ProjectService : IProjectService
         await _db.SaveChangesAsync();
     }
 
-    // One load and one save for a multi-row toolbar delete. Projects another candidate still
-    // references are kept; only their link is removed.
     public async Task DeleteManyForCandidateAsync(Guid candidateProfileId, IReadOnlyCollection<Guid> projectIds)
     {
         if (projectIds.Count == 0)
@@ -148,7 +138,6 @@ public class ProjectService : IProjectService
 
         _db.CandidateProjects.RemoveRange(ownedLinks);
 
-        // Any other link to these projects means the project itself must survive.
         var stillLinkedProjectIds = await _db.CandidateProjects
             .Where(cp => projectIds.Contains(cp.ProjectId)
                          && cp.CandidateProfileId != candidateProfileId)
@@ -164,7 +153,6 @@ public class ProjectService : IProjectService
         await _db.SaveChangesAsync();
     }
 
-    // Feeds the tag-input autocomplete (spec §5.3): tags already entered anywhere in the system.
     public async Task<List<string>> GetAllTagNamesAsync() =>
         await _db.ProjectTags
             .AsNoTracking()
@@ -188,7 +176,6 @@ public class ProjectService : IProjectService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Removing in place keeps the whole change set in a single SaveChanges call.
         foreach (var stale in project.Tags
                      .Where(t => !desired.Contains(t.Tag, StringComparer.OrdinalIgnoreCase))
                      .ToList())

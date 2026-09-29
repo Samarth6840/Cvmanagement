@@ -22,7 +22,7 @@
                 <div class="mb-3 p-2 rounded border">
                     <div class="d-flex justify-content-between">
                         <strong>
-                            @* Spec §10: a Recruiter sees the author name as a link to the public profile. *@
+
                             @if (_isRecruiter)
                             {
                                 <a href="/users/@msg.UserId">@msg.User?.DisplayName</a>
@@ -57,7 +57,6 @@
         }
         else
         {
-            @* Spec §3.2: anonymous visitors browse read-only. *@
             <p class="text-muted mb-0">
                 <a href="/login">@Loc["TopBar.SignIn"]</a> @Loc["Discussion.SignInToPost"]
             </p>
@@ -82,8 +81,6 @@
             || await CurrentUserService.IsInRoleAsync(RoleNames.Administrator);
         _messages = await DiscussionService.GetMessagesAsync(PositionId);
 
-        // The hub requires authentication, so an anonymous reader never connects: doing so
-        // would only fault the connection.
         if (!_isAuthenticated)
             return;
 

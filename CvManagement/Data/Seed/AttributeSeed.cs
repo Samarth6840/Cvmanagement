@@ -3,11 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Data.Seed;
 
-/// <summary>
-/// Ships the built-in "Me" attributes (spec §5.1). They are ordinary library attributes —
-/// same table, same engine, attachable to any position template — but flagged
-/// <see cref="AttributeDefinition.IsBuiltIn"/> so they can never be deleted.
-/// </summary>
 public static class AttributeSeed
 {
     private static readonly AttributeDefinition[] BuiltInAttributes =
@@ -18,11 +13,6 @@ public static class AttributeSeed
         new() { Name = "Personal Photo", CategoryId = AttributeCategoryCatalog.PersonalInformation, DataType = AttributeDataType.Image, SortOrder = 3 }
     ];
 
-    /// <summary>
-    /// Runs on every startup. An attribute already carrying one of the built-in names is
-    /// promoted rather than duplicated, so the unique name index is never violated and a
-    /// pre-existing value is preserved.
-    /// </summary>
     public static async Task SeedBuiltInAttributesAsync(IServiceProvider serviceProvider)
     {
         var db = serviceProvider.GetRequiredService<CvDbContext>();

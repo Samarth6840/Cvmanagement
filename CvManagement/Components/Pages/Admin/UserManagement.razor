@@ -19,7 +19,6 @@
     <div class="alert alert-warning">@_error</div>
 }
 
-@* Spec §2: actions are collected in a toolbar and act on the selection. *@
 <div class="table-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
     <input type="text" class="form-control form-control-sm" style="max-width: 16rem;"
            placeholder="@Loc["Admin.SearchUsers"]"
@@ -36,7 +35,7 @@
         </select>
         <button class="btn btn-outline-primary btn-sm" disabled="@(_selectedIds.Count != 1)"
                 @onclick="() => ToggleRoleAsync(true)">@Loc["Admin.AssignRole"]</button>
-        @* Self-demotion is allowed (spec §3.7), so this stays enabled for the admin's own row. *@
+
         <button class="btn btn-outline-secondary btn-sm" disabled="@(_selectedIds.Count != 1)"
                 @onclick="() => ToggleRoleAsync(false)">@Loc["Admin.RemoveRole"]</button>
         <button class="btn btn-outline-warning btn-sm" disabled="@(_selectedIds.Count == 0)"
@@ -106,7 +105,6 @@
     private string? _message;
     private Guid? _currentUserId;
 
-    // Filtered in memory: the list is loaded once, so a keystroke never hits the database.
     private IEnumerable<AdminUserSummary> FilteredUsers =>
         _users.Where(u => _searchTerm.Length == 0
                           || u.DisplayName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
@@ -122,8 +120,6 @@
 
     private async Task LoadAsync()
     {
-        // Roles are resolved server-side; the page filters the returned rows locally so
-        // typing does not re-query on every keystroke.
         _users = await AdminUserService.ListUsersAsync();
     }
 
@@ -163,8 +159,6 @@
         }
     }
 
-    // Blocking or deleting your own account would lock the administrator out, so the service
-    // rejects it (self-demotion of the role is still explicitly allowed).
     private Task BlockSelected() => SetBlockedForSelectionAsync(true);
 
     private Task UnblockSelected() => SetBlockedForSelectionAsync(false);

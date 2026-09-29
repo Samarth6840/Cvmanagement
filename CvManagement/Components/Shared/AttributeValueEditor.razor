@@ -10,12 +10,12 @@
             break;
 
         case AttributeDataType.Text:
-            @* Text attributes are Markdown-formatted (spec §6.2). *@
+
             <MarkdownEditor Value="@TextValue" ValueChanged="OnTextChanged" Rows="4" />
             break;
 
         case AttributeDataType.Image:
-            @* Uploaded straight to cloud storage; only the URL is stored (spec §13a.4). *@
+
             <ImageUpload Value="@ImageUrl" ValueChanged="OnImageChanged" />
             break;
 
@@ -104,7 +104,6 @@
             await NumericValueChanged.InvokeAsync(null);
     }
 
-    // UtcDate keeps the DateTime kind UTC, which the timestamptz columns require.
     private async Task OnDateChanged(ChangeEventArgs e) =>
         await DateValueChanged.InvokeAsync(UtcDate.FromInput(e.Value?.ToString()));
 

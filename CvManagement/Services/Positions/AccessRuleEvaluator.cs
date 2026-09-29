@@ -28,7 +28,6 @@ public static class AccessRuleEvaluator
         nameof(PositionAccessOperator.NotEquals)
     ];
 
-    // Operators offered per attribute data type in the access-rule editor (spec §7.2).
     public static IReadOnlyList<PositionAccessOperator> GetOperatorsFor(AttributeDataType dataType) =>
         dataType switch
         {
@@ -42,9 +41,6 @@ public static class AccessRuleEvaluator
     private static List<PositionAccessOperator> ToOperators(string[] names) =>
         names.Select(Enum.Parse<PositionAccessOperator>).ToList();
 
-
-    // Every rule must pass. A missing value fails its rule rather than being skipped, so an
-    // unfilled attribute cannot grant access.
     public static bool CanAccess(ICollection<PositionAccessRule> rules, List<ProfileAttributeValue> values) =>
         rules.All(r => IsSatisfied(r, values.FirstOrDefault(v => v.AttributeDefinitionId == r.AttributeDefinitionId)));
 
@@ -70,8 +66,6 @@ public static class AccessRuleEvaluator
             _ => null
         };
 
-    // FilterValue is free text entered by a recruiter, so parse with InvariantCulture:
-    // "5,5" must not parse on a de-DE machine and fail on en-US.
     private static bool CompareDecimal(decimal? v, PositionAccessRule rule)
     {
         if (!v.HasValue || !decimal.TryParse(rule.FilterValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var expected)) return false;
@@ -100,8 +94,6 @@ public static class AccessRuleEvaluator
 
     private static bool CompareBool(bool? v, PositionAccessRule rule)
     {
-        // An unparseable filter must not silently degrade to "expected == false",
-        // which would make a NotEquals rule pass for every candidate.
         if (!v.HasValue || !bool.TryParse(rule.FilterValue, out var expected)) return false;
         return rule.Operator switch
         {

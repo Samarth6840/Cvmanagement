@@ -58,7 +58,7 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
-/* Drag-and-drop image upload target (spec §13a.4). */
+
 .image-drop-zone {
     border: 2px dashed var(--bs-border-color);
     border-radius: 0.5rem;
@@ -92,7 +92,6 @@ h1:focus {
     display: inline;
 }
 
-/* Hosts for the JS-owned editors; they must stay visually neutral. */
 .markdown-editor-host,
 .tag-input-host {
     display: block;
@@ -103,7 +102,6 @@ h1:focus {
     --tags-focus-border-color: var(--bs-primary);
 }
 
-/* Selected rows in a list view (spec §2: toolbar actions, not per-row buttons). */
 .table tbody tr.is-selected > * {
     background-color: var(--bs-tertiary-bg);
 }

@@ -32,9 +32,7 @@
                         <li><a class="dropdown-item" href="/cvs">@Loc["Nav.MyCvs"]</a></li>
                         <li><hr class="dropdown-divider" /></li>
                         <li>
-                            @* A link, not a form: this menu is rendered interactively, where an
-                               antiforgery token cannot be emitted, so a POST here is rejected with
-                               400 by UseAntiforgery. The /logout page itself does the sign-out. *@
+
                             <a class="dropdown-item" href="/logout">@Loc["TopBar.SignOut"]</a>
                         </li>
                     </ul>
@@ -47,8 +45,6 @@
         </div>
     </div>
 
-    @* On phones the search box gets its own row rather than being dropped: it is the fastest
-       way into the app and the previous layout left a phone user with no way to search. *@
     <div class="d-md-none mt-2">
         <SearchBar />
     </div>

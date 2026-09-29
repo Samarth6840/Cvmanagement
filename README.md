@@ -20,7 +20,6 @@ table and are resolved live — a CV stores no content of its own.
 
 ```bash
 dotnet run --project CvManagement            # applies migrations + seed, then serves
-dotnet run --project CvManagement -- --selfcheck   # in-memory access-rule checks, no DB needed
 ```
 
 ### Sample content

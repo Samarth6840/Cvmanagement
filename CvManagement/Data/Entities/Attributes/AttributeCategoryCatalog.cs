@@ -1,13 +1,5 @@
 namespace CvManagement.Data.Entities.Attributes;
 
-/// <summary>
-/// The fixed, seeded category list. Ids are stable and never database-generated, so they can
-/// be referenced from code (the built-in attributes, the seed data) and from SQL without
-/// renumbering anything.
-///
-/// These ids are also what the <c>AddAttributeCategoryLookup</c> migration inserts, and what
-/// the pre-existing enum values were backfilled to.
-/// </summary>
 public static class AttributeCategoryCatalog
 {
     public const int Certification = 1;

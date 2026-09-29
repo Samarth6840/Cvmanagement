@@ -34,8 +34,6 @@ public static class IdentitySeed
         }
     }
 
-    // No default account unless an operator supplies credentials via configuration.
-    // A committed seed password would be a live admin login in every deployed environment.
     private static async Task SeedAdministratorAsync(
         UserManager<ApplicationUser> userManager,
         IConfiguration config)
@@ -49,7 +47,6 @@ public static class IdentitySeed
         if (await userManager.FindByEmailAsync(email) is not null)
             return;
 
-        // UserManager normalizes UserName/Email itself.
         var admin = new ApplicationUser
         {
             UserName = email,

@@ -44,9 +44,6 @@ public class SearchService : ISearchService
 
         var positionResults = await SearchPositionsAsync(query, isRecruiterOrAdmin);
 
-        // CV content belongs to candidates, not to other candidates: only recruiters and
-        // administrators may search it. Access rules gate what a *candidate* may see of a
-        // position, so they do not apply to a recruiter's own search.
         if (!isRecruiterOrAdmin)
             return positionResults;
 
@@ -56,12 +53,6 @@ public class SearchService : ISearchService
 
     private async Task<List<SearchResult>> SearchPositionsAsync(string query, bool isRecruiterOrAdmin)
     {
-        // Restricted positions are recruiter-only, so a candidate or anonymous search must
-        // not see them even when the text matches.
-        //
-        // The flag is passed as a boolean *parameter*. Building this predicate as an
-        // interpolated string variable would send it to PostgreSQL as a text parameter and
-        // fail with "argument of AND must be type boolean, not type text".
         return await _db.Database
             .SqlQuery<SearchResult>($@"
                 SELECT {(int)SearchResultType.Position} AS ""Type"", p.""Id"", p.""Title"",
@@ -75,8 +66,6 @@ public class SearchService : ISearchService
             .ToListAsync();
     }
 
-    // CV *content* is EAV, so it is matched through ProfileAttributeValues.SearchVector
-    // rather than the CvRecords trigger, which only sees titles and the candidate name.
     private async Task<List<SearchResult>> SearchCvsAsync(string query) =>
         await _db.Database
             .SqlQuery<SearchResult>($@"

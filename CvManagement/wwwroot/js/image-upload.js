@@ -1,22 +1,6 @@
-// Image upload straight to Cloudinary (spec §13a.4).
-//
-// Two paths, both of which keep the bytes away from this application entirely:
-//
-//  1. Cloudinary's official Upload Widget (spec §13a.1: prefer the ready-made component).
-//     It offers drag-and-drop, camera and URL sources, and posts straight to Cloudinary.
-//  2. A plain direct upload, used only if the widget script is unavailable. Same guarantee —
-//     the browser POSTs to Cloudinary's REST endpoint with an *unsigned* preset — so a CDN
-//     outage degrades the picker rather than breaking image attributes.
-//
-// In both cases only the returned URL reaches the server, and the API secret is never needed.
-
-const UPLOAD_WIDGET_SCRIPT = "cloudinary"; // window.cloudinary, from upload-widget.cloudinary.com
+const UPLOAD_WIDGET_SCRIPT = "cloudinary";
 const CLOUDINARY_UPLOAD_BASE = "https://api.cloudinary.com/v1_1";
 
-/**
- * Wires a drop zone to Cloudinary. Returns false when the cloud target is not configured,
- * so the caller can show its "not configured" notice instead.
- */
 export async function attach(host, dotNetRef, cloudName, uploadPreset) {
     if (!host || !cloudName || !uploadPreset) return false;
 
@@ -45,8 +29,6 @@ export function detach(host) {
     host._onPick = host._onChange = host._onDragOver = host._onDragLeave = host._onDrop = null;
 }
 
-// --- Cloudinary's own uploader -------------------------------------------------------------
-
 function attachUploadWidget(host, dotNetRef, cloudinary, cloudName, uploadPreset) {
     const widget = cloudinary.createUploadWidget(
         {
@@ -64,7 +46,6 @@ function attachUploadWidget(host, dotNetRef, cloudinary, cloudName, uploadPreset
                 return;
             }
 
-            // The callback also fires for open/queued/close; only a success carries a URL.
             if (result?.event === "success" && result.info?.secure_url) {
                 await notify(dotNetRef, "OnUploaded", result.info.secure_url);
             }
@@ -74,8 +55,6 @@ function attachUploadWidget(host, dotNetRef, cloudinary, cloudName, uploadPreset
     host._onPick = () => widget.open();
     host.addEventListener("click", host._onPick);
 }
-
-// --- Fallback: post the file straight to Cloudinary ----------------------------------------
 
 function attachDirectUpload(host, dotNetRef, cloudName, uploadPreset) {
     const input = host.querySelector("input[type=file]");
@@ -149,6 +128,5 @@ async function notify(dotNetRef, method, payload) {
     try {
         await dotNetRef.invokeMethodAsync(method, payload);
     } catch {
-        // The circuit can already be gone when a slow upload finishes; nothing to do.
     }
 }

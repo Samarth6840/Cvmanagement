@@ -49,8 +49,6 @@ public class AttributeService : IAttributeService
         return attribute;
     }
 
-    // Optimistic locking (spec §4): the caller sends the version it read and the write is
-    // rejected if another recruiter changed the definition in the meantime.
     public async Task<AttributeDefinition> UpdateAsync(Guid id, AttributeDefinition attribute, byte[] expectedVersion)
     {
         var existing = await _db.AttributeDefinitions
@@ -61,8 +59,6 @@ public class AttributeService : IAttributeService
         if (!existing.RowVersion.AsSpan().SequenceEqual(expectedVersion))
             throw new ConcurrencyConflictException(EntityName);
 
-        // Spec §5.1: a built-in "Me" attribute is protected. Its label and value stay
-        // editable, but its data type cannot be changed out from under existing values.
         if (existing.IsBuiltIn && existing.DataType != attribute.DataType)
             throw new InvalidOperationException(BuiltInProtectedMessage);
 
@@ -91,7 +87,6 @@ public class AttributeService : IAttributeService
         return existing;
     }
 
-    // Spec §5.1: built-in "Me" attributes can never be removed by a Recruiter.
     public async Task DeleteAsync(Guid id)
     {
         var attribute = await _db.AttributeDefinitions.FindAsync(id)
@@ -104,8 +99,6 @@ public class AttributeService : IAttributeService
         await _db.SaveChangesAsync();
     }
 
-    // One load and one save for a whole multi-row toolbar delete, instead of a round-trip
-    // per selected attribute.
     public async Task DeleteManyAsync(IReadOnlyCollection<Guid> ids)
     {
         if (ids.Count == 0)
@@ -124,7 +117,6 @@ public class AttributeService : IAttributeService
 
     public async Task<List<AttributeDefinition>> GetRecentlyUsedAsync(int count)
     {
-        // Most recently attached to a position, deduplicated, in that order.
         return await _db.PositionAttributeRules
             .AsNoTracking()
             .OrderByDescending(r => r.Position!.CreatedAt)

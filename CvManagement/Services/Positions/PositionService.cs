@@ -13,8 +13,6 @@ public class PositionService : IPositionService
 
     public PositionService(CvDbContext db) => _db = db;
 
-    // Reads never track: a Blazor circuit's scoped context would otherwise keep serving
-    // the entity it loaded on first render, defeating the version check on save.
     public Task<List<Position>> GetAllAsync(bool? publicOnly = null) =>
         _db.Positions
             .AsNoTracking()
@@ -68,8 +66,6 @@ public class PositionService : IPositionService
         return copy;
     }
 
-    // Spec §5.3: a Public position is open to any authenticated user. Filters only narrow
-    // a Restricted position. No rules on a restricted position means nobody passes.
     public async Task<bool> CanCandidateAccessAsync(Guid candidateProfileId, Guid positionId)
     {
         var isPublic = await _db.Positions
@@ -107,7 +103,6 @@ public class PositionService : IPositionService
             .Where(v => v.CandidateProfileId == candidateProfileId)
             .ToListAsync();
 
-        // ponytail: in-memory evaluation, fine for demo scale; push to a SQL join when data grows
         return positions.Where(p => p.IsPublic || AccessRuleEvaluator.CanAccess(p.AccessRules, values)).ToList();
     }
 
@@ -159,7 +154,6 @@ public class PositionService : IPositionService
         return (positions, candidates, recruiters, cvs24h, totalCvs);
     }
 
-    // Feeds the tag-input autocomplete, which suggests tags already used anywhere in the system.
     public async Task<List<string>> GetAllTagNamesAsync() =>
         await _db.PositionTags
             .AsNoTracking()
@@ -195,8 +189,6 @@ public class PositionService : IPositionService
         foreach (var rule in position.AccessRules)
             rule.PositionId = position.Id;
 
-        // The edit form carries attribute definitions purely for display; clearing the
-        // navigation keeps EF from treating the shared definitions as new rows.
         foreach (var rule in position.AttributeRules)
         {
             rule.PositionId = position.Id;
@@ -211,8 +203,6 @@ public class PositionService : IPositionService
         return position;
     }
 
-    // Optimistic locking (spec §4). Attribute template and access rules travel with the
-    // position so the whole form is written as one graph in a single save.
     public async Task<Position> UpdateAsync(Guid id, Position position, byte[] expectedVersion)
     {
         var existing = await _db.Positions
@@ -234,7 +224,6 @@ public class PositionService : IPositionService
 
         SyncAttributeRules(existing, position.AttributeRules);
 
-        // A Public position keeps no filters: they would be misleading and unreachable.
         _db.PositionAccessRules.RemoveRange(existing.AccessRules);
         if (!position.IsPublic)
         {
@@ -260,8 +249,6 @@ public class PositionService : IPositionService
         return existing;
     }
 
-    // Changes a position's attribute template without ever rewriting CVs: existing CVs
-    // resolve their content from the profile through the current template (spec §13.2).
     private static void SyncAttributeRules(Position existing, IEnumerable<PositionAttributeRule> desiredRules)
     {
         var desired = desiredRules
@@ -321,8 +308,6 @@ public class PositionService : IPositionService
         await _db.SaveChangesAsync();
     }
 
-    // One load and one save for a multi-row toolbar delete; related rows go with it via the
-    // database's cascade delete (spec §13.4).
     public async Task DeleteManyAsync(IReadOnlyCollection<Guid> ids)
     {
         if (ids.Count == 0)
@@ -336,8 +321,6 @@ public class PositionService : IPositionService
         await _db.SaveChangesAsync();
     }
 
-    // One diff + one save for the whole tag set. Writing tag-by-tag issued a round-trip
-    // per tag (the spec's "no queries in loops").
     public async Task SetTagsAsync(Guid positionId, IReadOnlyCollection<string> tags)
     {
         var desired = NormalizeTags(tags);

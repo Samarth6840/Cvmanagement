@@ -23,9 +23,6 @@ public class AttributeDefinition : IAuditable
 
     public bool IsRequired { get; set; }
 
-    // Spec §5.1: the "Me" attributes ship with the app and can be attached to any
-    // position template like any other attribute, but Recruiters must never be able
-    // to delete them. Enforced in AttributeService rather than by hiding the button.
     public bool IsBuiltIn { get; set; }
 
     public int SortOrder { get; set; }

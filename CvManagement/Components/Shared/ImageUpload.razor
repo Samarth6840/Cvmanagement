@@ -3,10 +3,6 @@
 @inject IJSRuntime Js
 @inject IConfiguration Configuration
 
-@* Drag-and-drop upload of an image straight to external cloud storage (spec §13a.4).
-   The browser sends the file to Cloudinary and only the resulting URL is bound back to
-   the model, so neither this server nor the database ever sees the image bytes. *@
-
 <div class="image-upload">
     @if (!string.IsNullOrEmpty(Value))
     {
@@ -102,7 +98,6 @@
         }
         catch (JSDisconnectedException)
         {
-            // Circuit already gone.
         }
 
         if (_module is not null)

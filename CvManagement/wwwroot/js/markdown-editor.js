@@ -1,7 +1,3 @@
-// EasyMDE wrapper (spec §13a.1: use a ready-made Markdown editor rather than a hand-rolled
-// toolbar). EasyMDE builds its own DOM inside the host element, which Blazor never renders
-// into, so Blazor's diffing never fights the editor for the same nodes.
-
 const editors = new Map();
 
 export async function init(host, initialValue, dotNetRef) {
@@ -61,8 +57,6 @@ export function destroy(hostOrId) {
     if (host) host.innerHTML = "";
 }
 
-// The CDN script may still be in flight when the first component renders; poll briefly
-// instead of silently leaving the user with a plain textarea.
 async function waitForGlobal(name, timeoutMs = 3000) {
     const deadline = Date.now() + timeoutMs;
 
@@ -78,6 +72,5 @@ async function notify(dotNetRef, value) {
     try {
         await dotNetRef.invokeMethodAsync("OnEditorChanged", value);
     } catch {
-        // Circuit disposed mid-typing; dropping the update is correct here.
     }
 }

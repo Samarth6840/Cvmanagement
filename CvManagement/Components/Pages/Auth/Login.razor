@@ -48,8 +48,6 @@
     [SupplyParameterFromQuery] public string? error { get; set; }
     [SupplyParameterFromQuery] public string? returnUrl { get; set; }
 
-    // Where to go after a successful sign-in. Only a path inside this app is honoured: an
-    // absolute URL here would turn the login page into an open redirect.
     private string RedirectTarget =>
         !string.IsNullOrEmpty(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
             ? returnUrl
@@ -71,8 +69,6 @@
 
     private async Task HandleLogin()
     {
-        // lockoutOnFailure keeps an administrator's block effective: a blocked account is
-        // refused here rather than only being hidden in the admin table.
         var result = await SignInManager.PasswordSignInAsync(Email, Password, true, lockoutOnFailure: true);
 
         if (result.Succeeded)
@@ -86,8 +82,6 @@
             : Loc["Auth.InvalidCredentials"].Value;
     }
 
-    // Carries the return target through the OAuth round trip so a social sign-in also lands
-    // back where the redirect sent the visitor.
     private string ExternalLoginUrl(string provider) =>
         RedirectTarget == "/"
             ? $"/external-login/{provider}"

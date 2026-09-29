@@ -3,11 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Data.Seed;
 
-/// <summary>
-/// Ensures the fixed category lookup list exists. The migration that introduced the table also
-/// inserts these rows; this runs on every startup so a database where a row was removed by hand
-/// is repaired rather than left with attributes pointing at a missing category.
-/// </summary>
 public static class AttributeCategorySeed
 {
     public static async Task SeedAsync(IServiceProvider serviceProvider)

@@ -1,13 +1,6 @@
 @implements IAsyncDisposable
 @inject IJSRuntime Js
 
-@* A ready-made Markdown editor (EasyMDE) wraps a plain textarea, with a Markdig-rendered
-   preview built into its own toolbar (spec §13a.1).
-   The textarea below is only a fallback: it is replaced by the editor on the first render,
-   and stays in place if the editor script is unavailable. The editor builds its DOM inside
-   an empty host element, which Blazor never renders into, so the two never fight over
-   the same nodes. *@
-
 <div class="mb-3">
     @if (!string.IsNullOrEmpty(Label))
     {
@@ -25,8 +18,6 @@
 </div>
 
 @code {
-    // Ids must be unique: a page can host several editors, and each editor keys its
-    // instance by host id.
     private static int _nextHostId;
 
     [Parameter] public string? Value { get; set; }
@@ -54,8 +45,6 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // The editor is the source of truth while it is live; only push a value that came
-        // from outside (a reload, for example).
         if (!_editorReady || Value == _current)
             return;
 
@@ -86,7 +75,6 @@
         }
         catch (JSDisconnectedException)
         {
-            // The circuit is already gone; there is nothing left to tear down.
         }
 
         if (_module is not null)

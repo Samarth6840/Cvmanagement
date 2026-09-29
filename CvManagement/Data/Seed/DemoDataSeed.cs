@@ -11,15 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Data.Seed;
 
-/// <summary>
-/// Sample content so a freshly created database is not three empty tables. Everything here
-/// goes through the same entities and services the app uses, so the data exercises the real
-/// code paths: attribute values live on the profile, a CV is a thin record, and the project
-/// list on a CV is derived from the position's tags.
-///
-/// It only runs against an empty database, and only when enabled (Development by default, or
-/// <c>Seed:DemoData=true</c>). Credentials are fixed and printed to the log on creation.
-/// </summary>
 public static class DemoDataSeed
 {
     public const string DemoPassword = "Demo1234!";
@@ -35,8 +26,6 @@ public static class DemoDataSeed
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DemoDataSeed));
 
-        // Never touch a database that already holds content. The accounts below are
-        // find-or-create, so a run that failed halfway is safe to repeat.
         if (await db.Positions.AnyAsync())
             return;
 
@@ -52,9 +41,6 @@ public static class DemoDataSeed
         var presentation = NewAttribute("Presentation Skills", AttributeCategoryCatalog.SoftSkills, AttributeDataType.OneOfMany, 12,
             "Self-assessed presentation level.");
 
-        // A Markdown-formatted text attribute. It also gives the recruiter's CV search
-        // something of the candidate's own to match on, since CV content is searched
-        // through ProfileAttributeValues rather than through the CvRecords row.
         var summary = NewAttribute("Professional Summary", AttributeCategoryCatalog.DomainKnowledge, AttributeDataType.Text, 13,
             "Markdown-formatted summary shown at the top of a CV.");
 
@@ -71,7 +57,6 @@ public static class DemoDataSeed
             .Where(a => a.IsBuiltIn)
             .ToDictionaryAsync(a => a.Name);
 
-        // Spec §5.1: the "Me" attributes are the same engine as the library attributes.
         var firstName = builtIns["First Name"];
         var lastName = builtIns["Last Name"];
         var location = builtIns["Location"];
@@ -128,7 +113,7 @@ public static class DemoDataSeed
                 Rule(presentation, isRequired: false, 4),
                 Rule(summary, isRequired: false, 5)
             ],
-            // Both tags must match, so only the two Python/Data Engineering projects qualify.
+
             Tags = [new PositionTag { Tag = "Python" }, new PositionTag { Tag = "Data Engineering" }]
         };
 
@@ -151,7 +136,6 @@ public static class DemoDataSeed
             Tags = [new PositionTag { Tag = "Blazor" }]
         };
 
-        // A Restricted position, gated by a numeric attribute filter (spec §7.2).
         var dataAnalystPosition = new Position
         {
             Title = "Data Analyst (IELTS > 6.5)",
@@ -193,7 +177,6 @@ public static class DemoDataSeed
 
         db.CvRecords.AddRange(publishedCv, draftCv);
 
-        // Spec §9: only a Recruiter may like a CV.
         db.CvLikes.Add(new CvLike { CvRecordId = publishedCv.Id, UserId = recruiter.Id });
 
         db.DiscussionMessages.AddRange(

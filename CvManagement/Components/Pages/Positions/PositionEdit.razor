@@ -240,7 +240,6 @@
             ? _allAttributes
             : _allAttributes.Where(a => a.CategoryId == _categoryFilterId);
 
-    // Image has no meaningful comparison in an access rule.
     private IEnumerable<AttributeDefinition> FilterableAttributes =>
         _allAttributes.Where(a => AccessRuleEvaluator.GetOperatorsFor(a.DataType).Count > 0);
 
@@ -330,8 +329,6 @@
 
     private bool IsInAccessRules(Guid attrId) => _accessRules.Any(r => r.AttributeDefinitionId == attrId);
 
-    // Access rules stay in the edited entity and are written with the position, so the whole
-    // form is saved as one graph in a single call.
     private void AddAccessRule()
     {
         if (SelectedRuleAttribute is null || !CanAddAccessRule)
@@ -383,7 +380,6 @@
             else
                 _position = await PositionService.UpdateAsync(_position.Id, _position, _position.RowVersion);
 
-            // One diff + one save for the whole tag set.
             await PositionService.SetTagsAsync(_position.Id, _tags);
         }
         catch (ConcurrencyConflictException ex)

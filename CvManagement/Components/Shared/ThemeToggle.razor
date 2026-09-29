@@ -32,8 +32,6 @@
         if (!firstRender)
             return;
 
-        // A signed-in user's saved choice follows them to a new device; a visitor's choice
-        // lives in local storage.
         var stored = await ReadServerPreferenceAsync() ?? await JSRuntime.InvokeAsync<string>("getStoredTheme");
         _isDark = stored == DarkTheme;
         await JSRuntime.InvokeVoidAsync("applyTheme", _isDark ? DarkTheme : LightTheme);

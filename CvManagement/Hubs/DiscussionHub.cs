@@ -26,8 +26,6 @@ public class DiscussionHub : Hub
         _profileService = profileService;
     }
 
-    // A connection is authenticated (Program.cs), but a candidate must still prove they can
-    // reach the specific position before reading or posting in its discussion.
     public async Task JoinGroup(Guid positionId)
     {
         if (!await CanAccessPositionAsync(positionId)) return;

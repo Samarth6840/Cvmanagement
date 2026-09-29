@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Admin;
 
-/// <summary>One row in the administrator's user table (spec §3.7).</summary>
 public record AdminUserSummary(
     Guid Id,
     string DisplayName,
@@ -14,16 +13,10 @@ public record AdminUserSummary(
     DateTimeOffset CreatedAt,
     IReadOnlyList<string> Roles);
 
-/// <summary>
-/// User management for administrators: view, block/unblock, delete, and assign/remove roles
-/// (spec §3.7). The rules about what an administrator may do to their own account live here
-/// rather than in the page, so they hold regardless of which UI calls them.
-/// </summary>
 public interface IAdminUserService
 {
     Task<List<AdminUserSummary>> ListUsersAsync();
 
-    /// <summary>Blocks or unblocks every user in <paramref name="targetUserIds"/>.</summary>
     Task SetBlockedManyAsync(Guid actingUserId, IReadOnlyCollection<Guid> targetUserIds, bool blocked);
 
     Task DeleteManyAsync(Guid actingUserId, IReadOnlyCollection<Guid> targetUserIds);
@@ -33,8 +26,6 @@ public interface IAdminUserService
 
 public class AdminUserService : IAdminUserService
 {
-    // Indefinite block. Lockout compares this against UtcNow, so far-future means "until
-    // an administrator lifts it".
     private static readonly DateTimeOffset IndefiniteLockout = DateTimeOffset.MaxValue;
 
     private const string CannotActOnSelfMessage = "Administrators cannot block or delete their own account.";
@@ -64,9 +55,6 @@ public class AdminUserService : IAdminUserService
             })
             .ToListAsync();
 
-
-        // Roles are fetched per user by Identity (its own tables), but that is a fixed two
-        // round-trips per listed row rather than a query buried in an unrelated loop.
         var summaries = new List<AdminUserSummary>(users.Count);
         foreach (var user in users)
         {
@@ -109,8 +97,6 @@ public class AdminUserService : IAdminUserService
         }
     }
 
-    // One query for the whole selection. The administrator's own row is excluded here, in
-    // the same place the rule is documented, rather than trusted to the caller.
     private async Task<List<ApplicationUser>> LoadTargetsAsync(
         Guid actingUserId,
         IReadOnlyCollection<Guid> targetUserIds)
@@ -129,8 +115,6 @@ public class AdminUserService : IAdminUserService
     private static string Describe(IdentityResult result) =>
         string.Join(" ", result.Errors.Select(e => e.Description));
 
-    // Self-demotion is explicitly allowed (spec §3.7): an administrator may strip their own
-    // Administrator role, so the self-check only blocks the destructive account actions.
     public async Task SetRoleAsync(Guid actingUserId, Guid targetUserId, string role, bool assigned)
     {
         if (!RoleNames.All.Contains(role))

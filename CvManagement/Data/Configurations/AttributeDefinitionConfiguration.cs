@@ -23,8 +23,6 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
             .HasForeignKey(o => o.AttributeDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Restrict, not cascade: deleting a category must not take its attributes with it.
-        // There is no category admin UI, so this only guards direct SQL.
         b.HasOne(e => e.Category)
             .WithMany(c => c.Attributes)
             .HasForeignKey(e => e.CategoryId)

@@ -41,14 +41,10 @@ public class CvService : ICvService
         _currentUser = currentUser;
     }
 
-    // CV mutations are limited to the owning candidate and to administrators (spec §3.6/§3.7).
-    // Attribute writes land on the shared candidate profile, so an unchecked edit here would
-    // let one user rewrite another user's profile data.
     public async Task<bool> CanEditAsync(Guid cvId) =>
         await _currentUser.IsInRoleAsync(RoleNames.Administrator)
         || await _currentUser.GetUserIdAsync() == await GetOwnerUserIdAsync(cvId);
 
-    // Recruiters get read-only access; candidates only to their own CVs.
     public async Task<bool> CanReadAsync(Guid cvId) =>
         await CanEditAsync(cvId)
         || await _currentUser.IsInRoleAsync(RoleNames.Recruiter);
@@ -79,8 +75,6 @@ public class CvService : ICvService
             throw new UnauthorizedAccessException("You can only act on your own profile.");
     }
 
-    // Spec §7.4: candidates may only create CVs for positions they currently match. A Public
-    // position is open to everyone signed in; only a Restricted position is filter-gated.
     private async Task EnsurePositionAccessibleAsync(Guid candidateProfileId, Guid positionId)
     {
         var isPublic = await _db.Positions
@@ -119,8 +113,6 @@ public class CvService : ICvService
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
-        // Hide CVs for restricted positions the candidate can no longer access (§7.4),
-        // including from the owner's own view. Public positions are always visible.
         var restricted = cvs.Where(c => c.Position is not null && !c.Position.IsPublic).ToList();
         if (restricted.Count == 0) return cvs;
 
@@ -154,8 +146,6 @@ public class CvService : ICvService
             .OrderByDescending(c => c.LikeCount)
             .ToListAsync();
 
-    // Access rules and candidate values are fetched once, then evaluated in memory.
-    // The previous version re-queried both per CV, i.e. 2 round-trips per row.
     public async Task<List<CvRecord>> GetVisibleCvsForPositionAsync(Guid positionId)
     {
         var cvs = await GetPublishedCvsForPositionAsync(positionId);
@@ -173,7 +163,6 @@ public class CvService : ICvService
             .Select(p => p.IsPublic)
             .FirstOrDefaultAsync();
 
-        // A Public position has no gate; a Restricted one with no rules is closed.
         if (isPublic || rules.Count == 0) return isPublic ? cvs : [];
 
         var candidateIds = cvs.Select(c => c.CandidateProfileId).Distinct().ToList();
@@ -210,7 +199,6 @@ public class CvService : ICvService
             throw new InvalidOperationException("A CV for this position already exists.");
 
         var createdByUserId = await _currentUser.GetUserIdAsync() ?? Guid.Empty;
-
 
         var cv = new CvRecord
         {
@@ -272,8 +260,6 @@ public class CvService : ICvService
         await _db.SaveChangesAsync();
     }
 
-    // Returns the position's template rules, carrying the per-position IsRequired flag
-    // that gates publishing (spec §8.4).
     public async Task<List<PositionAttributeRule>> GetCvAttributeRulesAsync(Guid cvId)
     {
         var rules = await _db.PositionAttributeRules
@@ -283,7 +269,6 @@ public class CvService : ICvService
         return rules.OrderBy(r => r.SortOrder).ToList();
     }
 
-    // One query for the whole position template instead of one per attribute definition.
     public async Task<Dictionary<Guid, ProfileAttributeValue>> GetCvAttributeValueMapAsync(Guid cvId)
     {
         var values = await _db.ProfileAttributeValues
@@ -298,8 +283,6 @@ public class CvService : ICvService
     public async Task SaveAttributeValueAsync(Guid cvId, ProfileAttributeValue value) =>
         await SaveAttributeValuesAsync(cvId, [value]);
 
-    // One transaction for the whole form. Saving attribute-by-attribute left the CV in a
-    // half-written state whenever a later attribute failed.
     public async Task SaveAttributeValuesAsync(Guid cvId, IEnumerable<ProfileAttributeValue> values)
     {
         await EnsureCanEditAsync(cvId);
@@ -340,8 +323,6 @@ public class CvService : ICvService
         await SaveWithConflictTranslationAsync();
     }
 
-    // Publish is gated on the position's own required flags (spec §8.4), not the
-    // library-wide AttributeDefinition.IsRequired.
     public async Task<List<PositionAttributeRule>> GetMissingRequiredRulesAsync(Guid cvId)
     {
         var rules = await _db.PositionAttributeRules
@@ -403,7 +384,6 @@ public class CvService : ICvService
 
         if (cv?.CandidateProfile is null || cv.Position is null) return new();
 
-        // Spec §13.3: a project qualifies only if it carries *every* required tag.
         var requiredTags = cv.Position.Tags.Select(t => t.Tag.ToLowerInvariant()).ToHashSet();
         var maxProjects = cv.Position.MaxProjects;
 
@@ -411,7 +391,7 @@ public class CvService : ICvService
             .Where(cp => cp.Project is not null)
             .Where(cp => requiredTags.All(
                 required => cp.Project!.Tags.Any(t => string.Equals(t.Tag, required, StringComparison.OrdinalIgnoreCase))))
-            // Undated projects sort last: Postgres orders NULLs first on DESC.
+
             .OrderByDescending(cp => cp.Project!.StartDate ?? DateTime.MinValue)
             .Take(maxProjects)
             .Select(cp => cp.Project!)

@@ -1,11 +1,6 @@
 @implements IAsyncDisposable
 @inject IJSRuntime Js
 
-@* A ready-made tag input (Tagify) with autocomplete from the tags already entered
-   elsewhere in the system (spec §5.3 / §13a.1). The manual input below is the fallback
-   used when the Tagify script is unavailable; once Tagify takes over, it owns the widgets
-   inside an empty host element that Blazor never renders into. *@
-
 <div class="mb-3">
     @if (!string.IsNullOrEmpty(Label))
     {
@@ -45,7 +40,6 @@
     [Parameter] public string Placeholder { get; set; } = "Add tags...";
     [Parameter] public List<string> Tags { get; set; } = [];
 
-    /// <summary>Autocomplete source: every tag already entered elsewhere in the system.</summary>
     [Parameter] public IReadOnlyCollection<string> Suggestions { get; set; } = [];
 
     [Parameter] public EventCallback<List<string>> TagsChanged { get; set; }
@@ -109,7 +103,6 @@
         }
         catch (JSDisconnectedException)
         {
-            // Circuit already gone.
         }
 
         if (_module is not null)

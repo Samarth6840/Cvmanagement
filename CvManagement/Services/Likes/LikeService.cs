@@ -24,8 +24,6 @@ public class LikeService : ILikeService
         _currentUser = currentUser;
     }
 
-    // Spec §9: recruiters only. Enforced here, not just by hiding the button, because
-    // the endpoint is otherwise reachable by any authenticated user.
     public async Task<bool> ToggleAsync(Guid userId, Guid cvRecordId)
     {
         if (!await _currentUser.IsInRoleAsync(RoleNames.Recruiter)
@@ -58,8 +56,6 @@ public class LikeService : ILikeService
         return existing is null;
     }
 
-    // Recount rather than read-modify-write on the denormalized counter: two recruiters
-    // liking at once previously raced, and the concurrency failure rolled back the like too.
     private async Task SaveAsync(Guid cvRecordId)
     {
         try

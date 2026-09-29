@@ -4,10 +4,8 @@
 
 namespace CvManagement.Data.Migrations
 {
-    /// <inheritdoc />
     public partial class UniqueCvPerPositionAndAttributeName : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateIndex(
@@ -23,7 +21,6 @@ namespace CvManagement.Data.Migrations
                 unique: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

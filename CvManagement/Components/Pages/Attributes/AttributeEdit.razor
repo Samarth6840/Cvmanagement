@@ -120,7 +120,6 @@
         }
         catch (ConcurrencyConflictException ex)
         {
-            // Someone else saved first. Reload to pick up their version before retrying.
             _error = ex.Message;
         }
         catch (InvalidOperationException ex)

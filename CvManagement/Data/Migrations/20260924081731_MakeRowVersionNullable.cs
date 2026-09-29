@@ -4,10 +4,8 @@
 
 namespace CvManagement.Data.Migrations
 {
-    /// <inheritdoc />
     public partial class MakeRowVersionNullable : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<byte[]>(
@@ -71,7 +69,6 @@ namespace CvManagement.Data.Migrations
                 oldRowVersion: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<byte[]>(

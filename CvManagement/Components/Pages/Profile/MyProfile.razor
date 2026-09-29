@@ -169,8 +169,6 @@ else
     private List<Project> _projects = [];
     private Dictionary<Guid, ProfileAttributeValue> _values = [];
 
-    // The version this screen read. Sent back on every save; the server rejects the write
-    // if the stored version has moved on (spec §4).
     private byte[] _version = [];
     private bool _isDirty;
     private bool _isSaving;
@@ -205,9 +203,6 @@ else
 
         _allAttributes = (await AttributeService.GetAllAsync()).ToList();
 
-        // Spec §5.1: the "Me" section is the built-in attributes. They live in the same
-        // library and the same engine as every other attribute, are attachable to position
-        // templates, and are protected from deletion on the server, not merely hidden here.
         _builtinAttributes = _allAttributes.Where(a => a.IsBuiltIn).ToList();
         _projects = await ProjectService.GetForCandidateAsync(_profile.Id);
 
@@ -216,7 +211,6 @@ else
             .Where(a => filledAttributeIds.Contains(a.Id) && !a.IsBuiltIn)
             .ToList();
 
-        // Built-ins are always shown, so they are never offered as "addable" info attributes.
         _availableAttributes = _allAttributes
             .Where(a => !filledAttributeIds.Contains(a.Id) && !a.IsBuiltIn)
             .ToList();

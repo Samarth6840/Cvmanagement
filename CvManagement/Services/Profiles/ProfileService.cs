@@ -6,10 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Profiles;
 
-/// <summary>
-/// A single attribute value as edited on the client. Carries no identity: the server
-/// matches it to the stored row by (profile, attribute).
-/// </summary>
 public record AttributeValueInput(
     Guid AttributeDefinitionId,
     string? StringValue = null,
@@ -27,10 +23,6 @@ public interface IProfileService
     Task<CandidateProfile> GetOrCreateProfileAsync(Guid userId);
     Task<CandidateProfile?> GetByUserIdAsync(Guid userId);
 
-    /// <summary>
-    /// Optimistic-locked save (spec §4). The caller passes the version it read; the write
-    /// is rejected if the stored version has moved on. Returns the new version.
-    /// </summary>
     Task<byte[]> SaveValuesAsync(
         Guid profileId,
         IReadOnlyCollection<AttributeValueInput> values,
@@ -59,8 +51,6 @@ public class ProfileService : IProfileService
         return profile;
     }
 
-    // AsNoTracking everywhere on reads: a Blazor circuit keeps its scope alive for the
-    // whole session, and a tracked entity would keep serving a version read hours ago.
     private Task<CandidateProfile?> LoadProfileAsync(System.Linq.Expressions.Expression<Func<CandidateProfile, bool>> predicate) =>
         _db.CandidateProfiles
             .AsNoTracking()
@@ -73,7 +63,6 @@ public class ProfileService : IProfileService
         IReadOnlyCollection<AttributeValueInput> values,
         byte[] expectedVersion)
     {
-        // A tracked query would short-circuit on the cached instance and defeat the check.
         _db.ChangeTracker.Clear();
 
         var profile = await _db.CandidateProfiles

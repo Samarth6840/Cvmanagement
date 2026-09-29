@@ -4,10 +4,8 @@
 
 namespace CvManagement.Data.Migrations
 {
-    /// <inheritdoc />
     public partial class AddBuiltInAttributeFlag : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
@@ -23,7 +21,6 @@ namespace CvManagement.Data.Migrations
                 column: "IsBuiltIn");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

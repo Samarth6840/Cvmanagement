@@ -108,7 +108,6 @@ else
     {
         var cvId = Guid.Parse(Id);
 
-        // Recruiters get read-only access; candidates only their own CVs (spec §3.5/§3.6).
         if (!await CvService.CanReadAsync(cvId))
         {
             _forbidden = true;

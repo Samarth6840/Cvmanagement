@@ -2,30 +2,42 @@
 @using CvManagement.Services.Cv
 @using CvManagement.Data.Entities.Cv
 @using CvManagement.Data.Entities.Attributes
+@using CvManagement.Data.Entities.Positions
 @using CvManagement.Data.Entities.Profiles
+@attribute [Authorize]
 @inject ICvService CvService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-@if (_cv is null)
+@if (_forbidden)
 {
-    <p>Loading...</p>
+    <h3>@Loc["Cv.NotAvailable"]</h3>
+    <p class="text-muted">@Loc["Cv.NoAccessToThis"]</p>
+    <a href="/cvs" class="btn btn-secondary">@Loc["Cv.BackToCvs"]</a>
+}
+else if (_cv is null)
+{
+    <p>@Loc["Common.Loading"]</p>
 }
 else
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Edit CV: @_cv.Title</h3>
+        <h3>@Loc["Cv.EditTitleWithName", _cv.Title]</h3>
         <div class="d-flex gap-2 align-items-center">
             @if (_cv.Status == CvStatus.Published)
             {
-                <button class="btn btn-warning btn-sm" @onclick="Unpublish">Unpublish</button>
+                <button class="btn btn-warning btn-sm" @onclick="Unpublish">@Loc["Cv.Unpublish"]</button>
             }
-            <button class="btn btn-danger btn-sm" @onclick="Delete">Delete</button>
+            <button class="btn btn-danger btn-sm" @onclick="Delete">@Loc["Cv.Delete"]</button>
         </div>
     </div>
 
+    <p class="text-muted small">
+        @Loc["Cv.ValuesNote"]
+    </p>
+
     <div class="mb-3">
-        <label class="form-label">CV Title</label>
+        <label class="form-label">@Loc["Cv.CvTitle"]</label>
         <input type="text" class="form-control" @bind="_cv.Title" @onfocusout="SaveTitle" />
     </div>
 
@@ -37,32 +49,33 @@ else
     {
         <div class="alert alert-danger py-2">@_error</div>
     }
-    @if (_missing!.Any())
+    @if (_missing.Count > 0)
     {
         <div class="alert alert-warning">
-            Publish is locked until every required attribute (highlighted red) is filled: @string.Join(", ", _missing.Select(m => m.Name)).
+            @Loc["Cv.PublishLocked", string.Join(", ", _missing.Select(m => m.AttributeDefinition!.Name))]
         </div>
     }
 
-    @if (_definitions!.Any())
+    @if (_rules.Count > 0)
     {
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Attributes</h5>
-                <button class="btn btn-primary btn-sm" @onclick="SaveValues">Save attributes</button>
+                <h5 class="mb-0">@Loc["Cv.Attributes"]</h5>
+                <button class="btn btn-primary btn-sm" @onclick="SaveValues">@Loc["Cv.SaveAttributes"]</button>
             </div>
             <div class="card-body">
-                @foreach (var def in _definitions)
+                @foreach (var rule in _rules)
                 {
-                    var value = GetValue(def.Id);
-                    var unfilled = def.IsRequired && !CvService.IsValueFilled(value);
+                    var def = rule.AttributeDefinition!;
+                    var value = GetValue(def.Id, def);
+                    var unfilled = rule.IsRequired && !CvService.IsValueFilled(value);
                     <div class="mb-3">
                         <label class="form-label @(unfilled ? "text-danger fw-bold" : "")">
-                            @def.Name @(def.IsRequired ? "*" : "")
+                            @def.Name @(rule.IsRequired ? "*" : "")
                         </label>
                         @if (unfilled)
                         {
-                            <span class="text-danger">(required)</span>
+                            <span class="text-danger">@Loc["Cv.Required"]</span>
                         }
                         <AttributeValueEditor Attribute="def"
                                               Options="def.Options"
@@ -90,84 +103,99 @@ else
         </div>
     }
 
-    @if (_cv.Status == CvStatus.Draft)
-    {
-        <div class="d-flex gap-2">
-            <button class="btn btn-success" @onclick="Publish" disabled="@(unfilledRequiredCount > 0)">Publish</button>
-            <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
-        </div>
-    }
-    else
-    {
-        <div class="d-flex gap-2">
-            <a href="/cvs/@_cv.Id" class="btn btn-secondary">Back to CV</a>
-        </div>
-    }
+    <div class="d-flex gap-2">
+        @if (_cv.Status == CvStatus.Draft)
+        {
+            <button class="btn btn-success" @onclick="Publish" disabled="@(_missing.Count > 0)">@Loc["Cv.Publish"]</button>
+        }
+        <a href="/cvs/@_cv.Id" class="btn btn-secondary">@Loc["Cv.BackToCv"]</a>
+    </div>
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
     private CvRecord? _cv;
-    private List<AttributeDefinition> _definitions = new();
+    private bool _forbidden;
+    private List<PositionAttributeRule> _rules = new();
     private Dictionary<Guid, ProfileAttributeValue> _values = new();
-    private List<AttributeDefinition> _missing = new();
+    private List<PositionAttributeRule> _missing = new();
     private string? _saveMessage;
     private string? _error;
 
-    private int unfilledRequiredCount => _missing.Count;
-
     protected override async Task OnInitializedAsync()
     {
+        if (!await CvService.CanEditAsync(Guid.Parse(Id)))
+        {
+            _forbidden = true;
+            return;
+        }
+
         _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
         if (_cv is null) return;
-        _definitions = await CvService.GetCvAttributeDefinitionsAsync(_cv.Id);
-        foreach (var def in _definitions)
-        {
-            _values[def.Id] = await CvService.GetCvAttributeValueAsync(_cv.Id, def.Id)
-                ?? new ProfileAttributeValue { AttributeDefinitionId = def.Id, AttributeDefinition = def };
-        }
-        _missing = await CvService.GetMissingRequiredAttributesAsync(_cv.Id);
+
+        _rules = await CvService.GetCvAttributeRulesAsync(_cv.Id);
+        _values = await CvService.GetCvAttributeValueMapAsync(_cv.Id);
+        await RefreshMissingAsync();
     }
 
-    private ProfileAttributeValue GetValue(Guid id) => _values[id];
+    private async Task RefreshMissingAsync()
+    {
+        if (_cv is not null)
+            _missing = await CvService.GetMissingRequiredRulesAsync(_cv.Id);
+    }
+
+    private ProfileAttributeValue GetValue(Guid id, AttributeDefinition def) =>
+        _values.TryGetValue(id, out var existing)
+            ? existing
+            : _values[id] = new ProfileAttributeValue { AttributeDefinitionId = id, AttributeDefinition = def };
 
     private void ValueChanged(Guid id, Action<ProfileAttributeValue> mutate)
     {
-        mutate(_values[id]);
+        if (_values.TryGetValue(id, out var value))
+            mutate(value);
         _saveMessage = null;
         _error = null;
     }
 
     private async Task SaveValues()
     {
+        if (_cv is null) return;
         _saveMessage = null;
         _error = null;
-        foreach (var (defId, value) in _values)
+
+        try
         {
-            try
-            {
-                await CvService.SaveAttributeValueAsync(_cv!.Id, value);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _error = ex.Message;
-                return;
-            }
+            // One transaction for the whole form: the previous per-attribute loop could
+            // commit N-1 values and silently drop the rest on the first failure.
+            await CvService.SaveAttributeValuesAsync(_cv.Id, _values.Values);
         }
-        _missing = await CvService.GetMissingRequiredAttributesAsync(_cv!.Id);
-        _saveMessage = "Attribute values saved to your profile.";
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+
+        await RefreshMissingAsync();
+        _saveMessage = Loc["Cv.AttributesSaved"];
     }
 
     private async Task SaveTitle()
     {
         if (_cv is null) return;
-        await CvService.UpdateTitleAsync(_cv.Id, _cv.Title);
+        try
+        {
+            await CvService.UpdateTitleAsync(_cv.Id, _cv.Title);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
     }
 
     private async Task Publish()
     {
-        if (_cv is null || _missing.Any()) return;
+        if (_cv is null) return;
         try
         {
             await CvService.PublishAsync(_cv.Id);
@@ -176,7 +204,7 @@ else
         catch (InvalidOperationException ex)
         {
             _error = ex.Message;
-            _missing = await CvService.GetMissingRequiredAttributesAsync(_cv.Id);
+            await RefreshMissingAsync();
         }
     }
 

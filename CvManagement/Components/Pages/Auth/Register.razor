@@ -8,7 +8,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <h3 class="card-title text-center mb-4">Create Account</h3>
+        <h3 class="card-title text-center mb-4">@Loc["Auth.CreateAccountTitle"]</h3>
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
@@ -17,26 +17,26 @@
 
         <form @onsubmit="HandleRegister">
             <div class="mb-3">
-                <label class="form-label">Display Name</label>
+                <label class="form-label">@Loc["Auth.DisplayName"]</label>
                 <input type="text" class="form-control" @bind="DisplayName" required />
             </div>
             <div class="mb-3">
-                <label class="form-label">Email</label>
+                <label class="form-label">@Loc["Auth.Email"]</label>
                 <input type="email" class="form-control" @bind="Email" required />
             </div>
             <div class="mb-3">
-                <label class="form-label">Password</label>
+                <label class="form-label">@Loc["Auth.Password"]</label>
                 <input type="password" class="form-control" @bind="Password" required />
             </div>
             <div class="mb-3">
-                <label class="form-label">Confirm Password</label>
+                <label class="form-label">@Loc["Auth.ConfirmPassword"]</label>
                 <input type="password" class="form-control" @bind="ConfirmPassword" required />
             </div>
-            <button type="submit" class="btn btn-primary w-100">Register</button>
+            <button type="submit" class="btn btn-primary w-100">@Loc["Auth.Register"]</button>
         </form>
 
         <div class="text-center mt-3">
-            <a href="/login">Already have an account? Sign in</a>
+            <a href="/login">@Loc["Auth.AlreadyHaveAccount"]</a>
         </div>
     </div>
 </div>
@@ -54,13 +54,13 @@
         if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(Email) ||
             string.IsNullOrWhiteSpace(Password) || string.IsNullOrWhiteSpace(ConfirmPassword))
         {
-            ErrorMessage = "All fields are required.";
+            ErrorMessage = Loc["Auth.AllFieldsRequired"];
             return;
         }
 
         if (Password != ConfirmPassword)
         {
-            ErrorMessage = "Passwords do not match.";
+            ErrorMessage = Loc["Auth.PasswordsDoNotMatch"];
             return;
         }
 
@@ -75,7 +75,7 @@
         var result = await UserManager.CreateAsync(user, Password);
         if (result.Succeeded)
         {
-            await UserManager.AddToRoleAsync(user, "Candidate");
+            await UserManager.AddToRoleAsync(user, RoleNames.Candidate);
             await SignInManager.SignInAsync(user, isPersistent: true);
             NavigationManager.NavigateTo("/", forceLoad: true);
         }

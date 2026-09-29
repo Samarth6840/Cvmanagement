@@ -9,6 +9,7 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
     public void Configure(EntityTypeBuilder<AttributeDefinition> b)
     {
         b.HasKey(e => e.Id);
+        b.HasIndex(e => e.IsBuiltIn);
         b.HasIndex(e => e.Slug).IsUnique();
         b.HasIndex(e => e.Name).IsUnique();
         b.Property(e => e.Name).HasMaxLength(128);

@@ -42,6 +42,9 @@ namespace CvManagement.Data.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
 
+                    b.Property<bool>("IsBuiltIn")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsRequired")
                         .HasColumnType("boolean");
 
@@ -67,6 +70,8 @@ namespace CvManagement.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsBuiltIn");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -548,6 +553,10 @@ namespace CvManagement.Data.Migrations
                     b.Property<DateTime?>("PeriodStart")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
+                        .HasColumnType("tsvector");
+
                     b.Property<Guid?>("SelectedOptionId")
                         .HasColumnType("uuid");
 
@@ -561,6 +570,10 @@ namespace CvManagement.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "gin");
 
                     b.HasIndex("SelectedOptionId");
 
@@ -778,7 +791,7 @@ namespace CvManagement.Data.Migrations
             modelBuilder.Entity("CvManagement.Data.Entities.Cv.CvRecord", b =>
                 {
                     b.HasOne("CvManagement.Data.Entities.Profiles.CandidateProfile", "CandidateProfile")
-                        .WithMany()
+                        .WithMany("CvRecords")
                         .HasForeignKey("CandidateProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1061,6 +1074,8 @@ namespace CvManagement.Data.Migrations
                     b.Navigation("AttributeValues");
 
                     b.Navigation("CandidateProjects");
+
+                    b.Navigation("CvRecords");
                 });
 
             modelBuilder.Entity("CvManagement.Data.Entities.Projects.Project", b =>

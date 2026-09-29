@@ -1,37 +1,38 @@
-@rendermode InteractiveServer
-@using CvManagement.Services.Auth
 @inject ICurrentUserService CurrentUser
+@inject NavigationManager Navigation
+@* Native names, not localized: a Polish speaker looking for "Polski" in a menu already
+   written in Polish does not help themselves. *@
 
 <div class="dropdown">
-    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        @_currentLang.ToUpperInvariant()
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+            data-bs-toggle="dropdown" aria-expanded="false"
+            title="@Loc["TopBar.Language"]" aria-label="@Loc["TopBar.Language"]">
+        <span class="d-md-none">@Loc["TopBar.Language"]</span>
+        <span class="d-none d-md-inline">@CurrentCultureCode</span>
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
-        <li>
-            <button class="dropdown-item @(_currentLang == "en" ? "active" : "")"
-                    @onclick="SetLangEn">English</button>
-        </li>
-        <li>
-            <button class="dropdown-item @(_currentLang == "pl" ? "active" : "")"
-                    @onclick="SetLangPl">Polski</button>
-        </li>
+        @foreach (var language in SupportedLanguages.All)
+        {
+            <li>
+                <form method="post" action="/culture/set">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="culture" value="@language.Code" />
+                    <input type="hidden" name="redirectUri" value="@RedirectUri" />
+                    <button type="submit"
+                            class="dropdown-item @(language.Code == CurrentCultureCode ? "active" : "")">
+                        @language.NativeName
+                    </button>
+                </form>
+            </li>
+        }
     </ul>
 </div>
 
 @code {
-    private string _currentLang = "en";
+    private string CurrentCultureCode => SupportedLanguages.Normalize(
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 
-    protected override async Task OnInitializedAsync()
-    {
-        _currentLang = await CurrentUser.GetPreferredLanguageAsync();
-    }
-
-    private async Task SetLangEn() => await SetLanguage("en");
-    private async Task SetLangPl() => await SetLanguage("pl");
-
-    private async Task SetLanguage(string lang)
-    {
-        _currentLang = lang;
-        StateHasChanged();
-    }
+    private string RedirectUri => Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith('/')
+        ? Navigation.ToBaseRelativePath(Navigation.Uri)
+        : "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
 }

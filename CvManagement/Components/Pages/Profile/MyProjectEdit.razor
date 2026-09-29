@@ -1,0 +1,152 @@
+@page "/my/projects/edit/{Id?}"
+@using CvManagement.Services.Projects
+@using CvManagement.Services.Auth
+@using CvManagement.Services.Profiles
+@using CvManagement.Services.Concurrency
+@using CvManagement.Data.Entities.Projects
+@attribute [Authorize]
+@inject IProjectService ProjectService
+@inject ICurrentUserService CurrentUserService
+@inject IProfileService ProfileService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>@(_isNew ? Loc["Project.CreateTitle"] : Loc["Project.EditTitle"])</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+
+@if (_project is not null)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">@Loc["Project.Name"]</label>
+                <input type="text" class="form-control" @bind="_project.Name" />
+            </div>
+            <div class="mb-3">
+                <MarkdownEditor Label="@Loc["Project.Description"]"
+                                Value="@_project.Description"
+                                ValueChanged="OnDescriptionChanged" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">@Loc["Project.Url"]</label>
+                <input type="url" class="form-control" @bind="_project.Url" />
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">@Loc["Project.StartDate"]</label>
+                    <input type="date" class="form-control" value="@(_project.StartDate?.ToString("yyyy-MM-dd"))"
+                           @onchange="OnStartDateChanged" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">@Loc["Project.EndDate"]</label>
+                    <input type="date" class="form-control" value="@(_project.EndDate?.ToString("yyyy-MM-dd"))"
+                           @onchange="OnEndDateChanged" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <TagInput Label="@Loc["Project.Tags"]" Tags="_tags" TagsChanged="OnTagsChanged"
+                          Suggestions="_knownTags" Placeholder="@Loc["TagInput.Placeholder"]" />
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="Save">@Loc["Common.Save"]</button>
+                <a href="/my/projects" class="btn btn-secondary">@Loc["Common.Cancel"]</a>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    private Project? _project;
+    private List<string> _tags = [];
+    private IReadOnlyCollection<string> _knownTags = [];
+    private Guid? _profileId;
+    private bool _isNew;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null)
+            return;
+
+        var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
+        _profileId = profile.Id;
+        _knownTags = await ProjectService.GetAllTagNamesAsync();
+
+        if (string.IsNullOrEmpty(Id) || Id == "new")
+        {
+            _isNew = true;
+            _project = new Project();
+            return;
+        }
+
+        _project = await ProjectService.GetForCandidateAsync(profile.Id, Guid.Parse(Id));
+        if (_project is null)
+        {
+            _error = Loc["Project.NotFound"];
+            return;
+        }
+
+        _tags = _project.Tags.Select(t => t.Tag).ToList();
+    }
+
+    private void OnDescriptionChanged(string value)
+    {
+        if (_project is not null)
+            _project.Description = value;
+    }
+
+    private void OnTagsChanged(List<string> tags) => _tags = tags;
+
+    private void OnStartDateChanged(ChangeEventArgs e)
+    {
+        if (_project is null) return;
+        _project.StartDate = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : null;
+    }
+
+    private void OnEndDateChanged(ChangeEventArgs e)
+    {
+        if (_project is null) return;
+        _project.EndDate = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : null;
+    }
+
+    private async Task Save()
+    {
+        if (_project is null || _profileId is null)
+            return;
+
+        _error = null;
+
+        try
+        {
+            if (_isNew)
+                await ProjectService.CreateForCandidateAsync(_profileId.Value, _project, _tags);
+            else
+                await ProjectService.UpdateForCandidateAsync(
+                    _profileId.Value, _project.Id, _project, _tags, _project.RowVersion);
+        }
+        catch (ConcurrencyConflictException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+
+        Navigation.NavigateTo("/my/projects");
+    }
+}

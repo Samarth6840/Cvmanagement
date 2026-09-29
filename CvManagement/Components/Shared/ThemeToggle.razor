@@ -1,6 +1,10 @@
+@using Microsoft.AspNetCore.Identity
 @rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject UserManager<ApplicationUser> UserManager
+@inject ICurrentUserService CurrentUser
 
-<button class="btn btn-sm btn-outline-secondary" @onclick="ToggleTheme" title="Toggle theme">
+<button class="btn btn-sm btn-outline-secondary" @onclick="ToggleTheme" title="@Loc["TopBar.ToggleTheme"]">
     @if (_isDark)
     {
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -17,24 +21,63 @@
 </button>
 
 @code {
+    private const string DarkTheme = "dark";
+    private const string LightTheme = "light";
+
     private bool _isDark;
+    private bool _initialized;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            var theme = await JSRuntime.InvokeAsync<string>("getStoredTheme");
-            _isDark = theme == "dark";
-            await JSRuntime.InvokeVoidAsync("applyTheme", _isDark ? "dark" : "light");
-            StateHasChanged();
-        }
+        if (!firstRender)
+            return;
+
+        // A signed-in user's saved choice follows them to a new device; a visitor's choice
+        // lives in local storage.
+        var stored = await ReadServerPreferenceAsync() ?? await JSRuntime.InvokeAsync<string>("getStoredTheme");
+        _isDark = stored == DarkTheme;
+        await JSRuntime.InvokeVoidAsync("applyTheme", _isDark ? DarkTheme : LightTheme);
+
+        _initialized = true;
+        StateHasChanged();
     }
 
     private async Task ToggleTheme()
     {
         _isDark = !_isDark;
-        await JSRuntime.InvokeVoidAsync("applyTheme", _isDark ? "dark" : "light");
+        var theme = _isDark ? DarkTheme : LightTheme;
+
+        await JSRuntime.InvokeVoidAsync("applyTheme", theme);
+        await SaveServerPreferenceAsync(theme);
     }
 
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    private async Task<string?> ReadServerPreferenceAsync()
+    {
+        if (!CurrentUser.IsAuthenticated)
+            return null;
+
+        var userId = await CurrentUser.GetUserIdAsync();
+        if (userId is null)
+            return null;
+
+        var user = await UserManager.FindByIdAsync(userId.Value.ToString());
+        return user?.PreferredTheme;
+    }
+
+    private async Task SaveServerPreferenceAsync(string theme)
+    {
+        if (!_initialized || !CurrentUser.IsAuthenticated)
+            return;
+
+        var userId = await CurrentUser.GetUserIdAsync();
+        if (userId is null)
+            return;
+
+        var user = await UserManager.FindByIdAsync(userId.Value.ToString());
+        if (user is null || user.PreferredTheme == theme)
+            return;
+
+        user.PreferredTheme = theme;
+        await UserManager.UpdateAsync(user);
+    }
 }

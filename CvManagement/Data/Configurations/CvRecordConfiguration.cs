@@ -20,7 +20,7 @@ public class CvRecordConfiguration : IEntityTypeConfiguration<CvRecord>
         b.HasIndex("SearchVector").HasMethod("gin");
 
         b.HasOne(e => e.CandidateProfile)
-            .WithMany()
+            .WithMany(p => p.CvRecords)
             .HasForeignKey(e => e.CandidateProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 

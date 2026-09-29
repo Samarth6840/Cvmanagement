@@ -9,17 +9,13 @@
             break;
 
         case AttributeDataType.Text:
-            <textarea class="form-control" rows="4" value="@TextValue" @onchange="OnTextChanged"></textarea>
+            @* Text attributes are Markdown-formatted (spec §6.2). *@
+            <MarkdownEditor Value="@TextValue" ValueChanged="OnTextChanged" Rows="4" />
             break;
 
         case AttributeDataType.Image:
-            <div>
-                @if (!string.IsNullOrEmpty(ImageUrl))
-                {
-                    <img src="@ImageUrl" class="img-thumbnail mb-2" style="max-height: 120px;" />
-                }
-                <input type="text" class="form-control" placeholder="Image URL" value="@ImageUrl" @onchange="OnImageChanged" />
-            </div>
+            @* Uploaded straight to cloud storage; only the URL is stored (spec §13a.4). *@
+            <ImageUpload Value="@ImageUrl" ValueChanged="OnImageChanged" />
             break;
 
         case AttributeDataType.Numeric:
@@ -40,13 +36,13 @@
         case AttributeDataType.Boolean:
             <div class="form-check">
                 <input type="checkbox" class="form-check-input" checked="@BoolValue" @onchange="OnBoolChanged" />
-                <label class="form-check-label">Yes</label>
+                <label class="form-check-label">@Loc["Common.Yes"]</label>
             </div>
             break;
 
         case AttributeDataType.OneOfMany:
             <select class="form-select" @onchange="OnOptionChanged">
-                <option value="">-- Select --</option>
+                <option value="">@Loc["AttributeValueEditor.Select"]</option>
                 @if (Options is not null)
                 {
                     @foreach (var opt in Options)
@@ -93,11 +89,11 @@
     private async Task OnStringChanged(ChangeEventArgs e) =>
         await StringValueChanged.InvokeAsync(e.Value?.ToString());
 
-    private async Task OnTextChanged(ChangeEventArgs e) =>
-        await TextValueChanged.InvokeAsync(e.Value?.ToString());
+    private async Task OnTextChanged(string value) =>
+        await TextValueChanged.InvokeAsync(value);
 
-    private async Task OnImageChanged(ChangeEventArgs e) =>
-        await ImageUrlChanged.InvokeAsync(e.Value?.ToString());
+    private async Task OnImageChanged(string? value) =>
+        await ImageUrlChanged.InvokeAsync(value);
 
     private async Task OnNumericChanged(ChangeEventArgs e)
     {

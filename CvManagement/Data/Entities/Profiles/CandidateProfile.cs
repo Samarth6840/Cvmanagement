@@ -20,4 +20,6 @@ public class CandidateProfile : IAuditable
     public ICollection<ProfileAttributeValue> AttributeValues { get; set; } = [];
 
     public ICollection<CandidateProject> CandidateProjects { get; set; } = [];
+
+    public ICollection<CvRecord> CvRecords { get; set; } = [];
 }

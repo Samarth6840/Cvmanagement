@@ -1,24 +1,30 @@
 @page "/attributes/edit/{Id?}"
 @using CvManagement.Services.Attributes
+@using CvManagement.Services.Concurrency
 @using CvManagement.Data.Entities.Attributes
-@attribute [Authorize(Policy = "RecruiterOnly")]
+@attribute [Authorize(Policy = AuthorizationPolicies.RecruiterOnly)]
 @inject IAttributeService AttributeService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<h3>@(_isNew ? "Create Attribute" : "Edit Attribute")</h3>
+<h3>@(_isNew ? Loc["Attribute.CreateTitle"] : Loc["Attribute.EditTitle"])</h3>
 
 @if (_attribute is not null)
 {
+    @if (_error is not null)
+    {
+        <div class="alert alert-warning">@_error <button class="btn btn-sm btn-warning ms-2" @onclick="Reload">@Loc["Common.Reload"]</button></div>
+    }
+
     <div class="card">
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Name</label>
+                    <label class="form-label">@Loc["Common.Name"]</label>
                     <input type="text" class="form-control" @bind="_attribute.Name" />
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">Category</label>
+                    <label class="form-label">@Loc["Common.Category"]</label>
                     <select class="form-select" @bind="_attribute.Category">
                         @foreach (var cat in Enum.GetValues<AttributeCategory>())
                         {
@@ -27,7 +33,7 @@
                     </select>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">Data Type</label>
+                    <label class="form-label">@Loc["Common.DataType"]</label>
                     <select class="form-select" @bind="_attribute.DataType">
                         @foreach (var dt in Enum.GetValues<AttributeDataType>())
                         {
@@ -37,36 +43,36 @@
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Description</label>
+                <label class="form-label">@Loc["Common.Description"]</label>
                 <textarea class="form-control" rows="2" @bind="_attribute.Description"></textarea>
             </div>
             <div class="mb-3">
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" @bind="_attribute.IsRequired" />
-                    <label class="form-check-label">Required for CV publishing</label>
+                    <label class="form-check-label">@Loc["Attribute.RequiredForPublishing"]</label>
                 </div>
             </div>
 
             @if (_attribute.DataType == AttributeDataType.OneOfMany)
             {
                 <hr />
-                <h5>Options</h5>
+                <h5>@Loc["Attribute.Options"]</h5>
                 <div class="d-flex gap-2 mb-2">
-                    <input type="text" class="form-control form-control-sm" placeholder="New option label" @bind="_newOptionLabel" />
-                    <button class="btn btn-sm btn-outline-primary" @onclick="AddOption">Add</button>
+                    <input type="text" class="form-control form-control-sm" placeholder="@Loc["Attribute.NewOptionPlaceholder"]" @bind="_newOptionLabel" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="AddOption">@Loc["Attribute.AddOption"]</button>
                 </div>
                 @foreach (var opt in _options)
                 {
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <span>@opt.Label</span>
-                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveOption(opt)">Remove</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveOption(opt)">@Loc["Attribute.Remove"]</button>
                     </div>
                 }
             }
 
             <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-primary" @onclick="Save">Save</button>
-                <a href="/attributes" class="btn btn-secondary">Cancel</a>
+                <button class="btn btn-primary" @onclick="Save">@Loc["Common.Save"]</button>
+                <a href="/attributes" class="btn btn-secondary">@Loc["Common.Cancel"]</a>
             </div>
         </div>
     </div>
@@ -79,6 +85,7 @@
     private List<AttributeOption> _options = new();
     private bool _isNew;
     private string _newOptionLabel = "";
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -99,12 +106,32 @@
     {
         if (_attribute is null) return;
 
-        if (_isNew)
-            await AttributeService.CreateAsync(_attribute);
-        else
-            await AttributeService.UpdateAsync(_attribute.Id, _attribute);
+        try
+        {
+            if (_isNew)
+                await AttributeService.CreateAsync(_attribute);
+            else
+                await AttributeService.UpdateAsync(_attribute.Id, _attribute, _attribute.RowVersion);
 
-        Navigation.NavigateTo("/attributes");
+            Navigation.NavigateTo("/attributes");
+        }
+        catch (ConcurrencyConflictException ex)
+        {
+            // Someone else saved first. Reload to pick up their version before retrying.
+            _error = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task Reload()
+    {
+        if (_attribute is null) return;
+        _attribute = await AttributeService.GetByIdAsync(_attribute.Id);
+        _options = _attribute is null ? [] : await AttributeService.GetOptionsAsync(_attribute.Id);
+        _error = null;
     }
 
     private async Task AddOption()

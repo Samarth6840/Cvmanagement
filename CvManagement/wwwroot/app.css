@@ -58,3 +58,52 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* Drag-and-drop image upload target (spec §13a.4). */
+.image-drop-zone {
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    color: var(--bs-secondary-color);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.image-drop-zone:hover,
+.image-drop-zone:focus-visible {
+    border-color: var(--bs-primary);
+    outline: none;
+}
+
+.image-drop-zone.is-dragging {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-tertiary-bg);
+}
+
+.image-drop-zone .image-drop-hint-uploading {
+    display: none;
+}
+
+.image-drop-zone.is-uploading .image-drop-hint {
+    display: none;
+}
+
+.image-drop-zone.is-uploading .image-drop-hint-uploading {
+    display: inline;
+}
+
+/* Hosts for the JS-owned editors; they must stay visually neutral. */
+.markdown-editor-host,
+.tag-input-host {
+    display: block;
+}
+
+.tag-input-host .tagify {
+    --tags-border-color: var(--bs-border-color);
+    --tags-focus-border-color: var(--bs-primary);
+}
+
+/* Selected rows in a list view (spec §2: toolbar actions, not per-row buttons). */
+.table tbody tr.is-selected > * {
+    background-color: var(--bs-tertiary-bg);
+}

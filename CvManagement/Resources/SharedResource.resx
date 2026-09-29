@@ -1,0 +1,863 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata"><xsd:complexType><xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence><xsd:attribute name="name" use="required" type="xsd:string" /><xsd:attribute name="type" type="xsd:string" /><xsd:attribute name="mimetype" type="xsd:string" /><xsd:attribute ref="xml:space" /></xsd:complexType></xsd:element>
+          <xsd:element name="assembly"><xsd:complexType><xsd:attribute name="alias" type="xsd:string" /><xsd:attribute name="name" type="xsd:string" /></xsd:complexType></xsd:element>
+          <xsd:element name="data"><xsd:complexType><xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /><xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" /></xsd:sequence><xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" /><xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" /><xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" /><xsd:attribute ref="xml:space" /></xsd:complexType></xsd:element>
+          <xsd:element name="resheader"><xsd:complexType><xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence><xsd:attribute name="name" type="xsd:string" use="required" /></xsd:complexType></xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Attribute.AddOption" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Attribute.Create" xml:space="preserve">
+    <value>Create Attribute</value>
+  </data>
+  <data name="Attribute.CreateTitle" xml:space="preserve">
+    <value>Create Attribute</value>
+  </data>
+  <data name="Attribute.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Attribute.EditTitle" xml:space="preserve">
+    <value>Edit Attribute</value>
+  </data>
+  <data name="Attribute.LibraryTitle" xml:space="preserve">
+    <value>Attribute Library</value>
+  </data>
+  <data name="Attribute.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Attribute.NoAttributes" xml:space="preserve">
+    <value>No attributes found.</value>
+  </data>
+  <data name="Attribute.Options" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="Attribute.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Attribute.Required" xml:space="preserve">
+    <value>Required</value>
+  </data>
+  <data name="Attribute.RequiredForPublishing" xml:space="preserve">
+    <value>Required for CV publishing</value>
+  </data>
+  <data name="AttributeValueEditor.ImageUrl" xml:space="preserve">
+    <value>Image URL</value>
+  </data>
+  <data name="AttributeValueEditor.Select" xml:space="preserve">
+    <value>-- Select --</value>
+  </data>
+  <data name="AttributeValueEditor.TextPlaceholder" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Auth.AccessDenied" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="Auth.AlreadyHaveAccount" xml:space="preserve">
+    <value>Already have an account? Sign in</value>
+  </data>
+  <data name="Auth.ConfirmPassword" xml:space="preserve">
+    <value>Confirm Password</value>
+  </data>
+  <data name="Auth.CreateAccount" xml:space="preserve">
+    <value>Create an account</value>
+  </data>
+  <data name="Auth.CreateAccountTitle" xml:space="preserve">
+    <value>Create Account</value>
+  </data>
+  <data name="Auth.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Auth.DisplayName" xml:space="preserve">
+    <value>Display Name</value>
+  </data>
+  <data name="Auth.Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Auth.GitHub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="Auth.GoHome" xml:space="preserve">
+    <value>Go Home</value>
+  </data>
+  <data name="Auth.GoToMyProfile" xml:space="preserve">
+    <value>Go to my profile</value>
+  </data>
+  <data name="Auth.Google" xml:space="preserve">
+    <value>Google</value>
+  </data>
+  <data name="Auth.Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Auth.NoPermission" xml:space="preserve">
+    <value>You do not have permission to access this resource.</value>
+  </data>
+  <data name="Auth.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Auth.Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Auth.RegisteredUser" xml:space="preserve">
+    <value>Registered user</value>
+  </data>
+  <data name="Auth.SignIn" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+  <data name="Auth.UserNotFound" xml:space="preserve">
+    <value>User not found.</value>
+  </data>
+  <data name="Common.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Common.Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Common.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Common.BackHome" xml:space="preserve">
+    <value>Back to home</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Common.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Common.Company" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="Common.Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="Common.DataType" xml:space="preserve">
+    <value>Data Type</value>
+  </data>
+  <data name="Common.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Common.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Common.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Common.Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Common.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Common.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Common.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Common.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Common.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Common.Required" xml:space="preserve">
+    <value>Required</value>
+  </data>
+  <data name="Common.Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Common.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Common.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Common.Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Common.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Common.Yes_" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Cv.AlreadyExists" xml:space="preserve">
+    <value>You already have a CV for this position.</value>
+  </data>
+  <data name="Cv.Attributes" xml:space="preserve">
+    <value>Attributes</value>
+  </data>
+  <data name="Cv.BackToCv" xml:space="preserve">
+    <value>Back to CV</value>
+  </data>
+  <data name="Cv.BackToCvs" xml:space="preserve">
+    <value>Back to CVs</value>
+  </data>
+  <data name="Cv.BrowsePositions" xml:space="preserve">
+    <value>Browse positions</value>
+  </data>
+  <data name="Cv.CreateNew" xml:space="preserve">
+    <value>Create New CV</value>
+  </data>
+  <data name="Cv.CreateTitle" xml:space="preserve">
+    <value>Create CV</value>
+  </data>
+  <data name="Cv.CreatingForPosition" xml:space="preserve">
+    <value>Creating CV for position:</value>
+  </data>
+  <data name="Cv.CvTitle" xml:space="preserve">
+    <value>CV Title</value>
+  </data>
+  <data name="Cv.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Cv.Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Cv.Empty" xml:space="preserve">
+    <value>(empty)</value>
+  </data>
+  <data name="Cv.ListTitle" xml:space="preserve">
+    <value>CVs</value>
+  </data>
+  <data name="Cv.NoAccess" xml:space="preserve">
+    <value>Your profile does not match this position's access rules, so you cannot create a CV for it.</value>
+  </data>
+  <data name="Cv.NoAccessToThis" xml:space="preserve">
+    <value>You do not have access to this CV.</value>
+  </data>
+  <data name="Cv.NoCvs" xml:space="preserve">
+    <value>No CVs found.</value>
+  </data>
+  <data name="Cv.NotAvailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Cv.Position" xml:space="preserve">
+    <value>Position:</value>
+  </data>
+  <data name="Cv.Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Cv.Publish" xml:space="preserve">
+    <value>Publish</value>
+  </data>
+  <data name="Cv.Required" xml:space="preserve">
+    <value>(required)</value>
+  </data>
+  <data name="Cv.SaveAttributes" xml:space="preserve">
+    <value>Save attributes</value>
+  </data>
+  <data name="Cv.Unpublish" xml:space="preserve">
+    <value>Unpublish</value>
+  </data>
+  <data name="Cv.ValuesNote" xml:space="preserve">
+    <value>Values are stored on your profile, not on the CV. Editing here updates the single source for every CV and for your profile page.</value>
+  </data>
+  <data name="Cv.ViewItHere" xml:space="preserve">
+    <value>View it here</value>
+  </data>
+  <data name="Discussion.NoMessages" xml:space="preserve">
+    <value>No messages yet. Start the discussion!</value>
+  </data>
+  <data name="Discussion.Placeholder" xml:space="preserve">
+    <value>Write a message...</value>
+  </data>
+  <data name="Discussion.Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Discussion.Title" xml:space="preserve">
+    <value>Discussion</value>
+  </data>
+  <data name="Error.Description" xml:space="preserve">
+    <value>An error occurred while processing your request.</value>
+  </data>
+  <data name="Error.DevDisplay" xml:space="preserve">
+    <value>Development</value>
+  </data>
+  <data name="Error.DevInfo" xml:space="preserve">
+    <value>environment will display more detailed information about the error that occurred.</value>
+  </data>
+  <data name="Error.DevMode" xml:space="preserve">
+    <value>Development Mode</value>
+  </data>
+  <data name="Error.DevSensitive1" xml:space="preserve">
+    <value>It can result in displaying sensitive information from exceptions to end users.</value>
+  </data>
+  <data name="Error.DevSensitive2" xml:space="preserve">
+    <value>For local debugging, enable the</value>
+  </data>
+  <data name="Error.DevSensitive3" xml:space="preserve">
+    <value>environment by setting the</value>
+  </data>
+  <data name="Error.DevSensitive4" xml:space="preserve">
+    <value>environment variable to</value>
+  </data>
+  <data name="Error.DevSensitive5" xml:space="preserve">
+    <value>and restarting the app.</value>
+  </data>
+  <data name="Error.DevSwap" xml:space="preserve">
+    <value>Swapping to</value>
+  </data>
+  <data name="Error.DevWarn" xml:space="preserve">
+    <value>The Development environment shouldn't be enabled for deployed applications.</value>
+  </data>
+  <data name="Error.RequestId" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="Error.Short" xml:space="preserve">
+    <value>Error.</value>
+  </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Home.CvColumn" xml:space="preserve">
+    <value>CVs</value>
+  </data>
+  <data name="Home.Landing" xml:space="preserve">
+    <value>CV Management</value>
+  </data>
+  <data name="Home.LatestPositions" xml:space="preserve">
+    <value>Latest Positions</value>
+  </data>
+  <data name="Home.MostPopular" xml:space="preserve">
+    <value>Most Popular Positions</value>
+  </data>
+  <data name="Home.NoCvs" xml:space="preserve">
+    <value>No CVs submitted yet.</value>
+  </data>
+  <data name="Home.NoTags" xml:space="preserve">
+    <value>No tags yet.</value>
+  </data>
+  <data name="Home.Restricted" xml:space="preserve">
+    <value>Restricted</value>
+  </data>
+  <data name="Home.Stat.Candidates" xml:space="preserve">
+    <value>Candidates</value>
+  </data>
+  <data name="Home.Stat.NewCvs" xml:space="preserve">
+    <value>New CVs (24 h)</value>
+  </data>
+  <data name="Home.Stat.Positions" xml:space="preserve">
+    <value>Positions</value>
+  </data>
+  <data name="Home.Stat.Recruiters" xml:space="preserve">
+    <value>Recruiters</value>
+  </data>
+  <data name="Home.Stat.SubmittedCvs" xml:space="preserve">
+    <value>Submitted CVs</value>
+  </data>
+  <data name="Home.TagSearchCandidate" xml:space="preserve">
+    <value>Searching a tag opens matching positions for candidates.</value>
+  </data>
+  <data name="Home.TagSearchRecruiter" xml:space="preserve">
+    <value>Searching a tag opens CVs for recruiters.</value>
+  </data>
+  <data name="Home.Tags" xml:space="preserve">
+    <value>Technology Tags</value>
+  </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>CV Management System</value>
+  </data>
+  <data name="ImageUploader.Choose" xml:space="preserve">
+    <value>Choose image</value>
+  </data>
+  <data name="ImageUploader.InvalidType" xml:space="preserve">
+    <value>Only image files are allowed.</value>
+  </data>
+  <data name="ImageUploader.RemoveImage" xml:space="preserve">
+    <value>Remove image</value>
+  </data>
+  <data name="ImageUploader.Replace" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="ImageUploader.TooLarge" xml:space="preserve">
+    <value>Image is too large. Maximum size is {0} MB.</value>
+  </data>
+  <data name="ImageUploader.Uploading" xml:space="preserve">
+    <value>Uploading...</value>
+  </data>
+  <data name="MarkdownEditor.Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarBold" xml:space="preserve">
+    <value>Bold</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarCode" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarHeading" xml:space="preserve">
+    <value>Heading</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarImage" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarItalic" xml:space="preserve">
+    <value>Italic</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarLink" xml:space="preserve">
+    <value>Link</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarList" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="MarkdownEditor.ToolbarQuote" xml:space="preserve">
+    <value>Quote</value>
+  </data>
+  <data name="MarkdownEditor.Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Nav.Admin" xml:space="preserve">
+    <value>Admin</value>
+  </data>
+  <data name="Nav.Attributes" xml:space="preserve">
+    <value>Attributes</value>
+  </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Nav.Menu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="Nav.MyCvs" xml:space="preserve">
+    <value>My CVs</value>
+  </data>
+  <data name="Nav.MyProfile" xml:space="preserve">
+    <value>My Profile</value>
+  </data>
+  <data name="Nav.Positions" xml:space="preserve">
+    <value>Positions</value>
+  </data>
+  <data name="Nav.Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Nav.Recruiter" xml:space="preserve">
+    <value>Recruiter</value>
+  </data>
+  <data name="Nav.ToggleNavigation" xml:space="preserve">
+    <value>Toggle navigation</value>
+  </data>
+  <data name="NotFound.Description" xml:space="preserve">
+    <value>Sorry, the content you are looking for does not exist.</value>
+  </data>
+  <data name="NotFound.Title" xml:space="preserve">
+    <value>Not Found</value>
+  </data>
+  <data name="Position.AccessRules" xml:space="preserve">
+    <value>Access Rules</value>
+  </data>
+  <data name="Position.AccessRulesHint" xml:space="preserve">
+    <value>Only applies to a {0} position: a candidate must satisfy {1} rule below to see this position and create a CV for it. Uncheck {2} to switch to Restricted.</value>
+  </data>
+  <data name="Position.AllCategories" xml:space="preserve">
+    <value>All categories</value>
+  </data>
+  <data name="Position.Attribute" xml:space="preserve">
+    <value>Attribute</value>
+  </data>
+  <data name="Position.AttributeTemplate" xml:space="preserve">
+    <value>Attribute Template</value>
+  </data>
+  <data name="Position.Candidate" xml:space="preserve">
+    <value>Candidate</value>
+  </data>
+  <data name="Position.Company" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="Position.Create" xml:space="preserve">
+    <value>Create Position</value>
+  </data>
+  <data name="Position.CreateCv" xml:space="preserve">
+    <value>Create CV</value>
+  </data>
+  <data name="Position.CreateTitle" xml:space="preserve">
+    <value>Create Position</value>
+  </data>
+  <data name="Position.CvColumn" xml:space="preserve">
+    <value>CV</value>
+  </data>
+  <data name="Position.Description" xml:space="preserve">
+    <value>Description (Markdown)</value>
+  </data>
+  <data name="Position.Duplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="Position.EditTitle" xml:space="preserve">
+    <value>Edit Position</value>
+  </data>
+  <data name="Position.Every" xml:space="preserve">
+    <value>every</value>
+  </data>
+  <data name="Position.EveryWord" xml:space="preserve">
+    <value>every</value>
+  </data>
+  <data name="Position.Likes" xml:space="preserve">
+    <value>Likes</value>
+  </data>
+  <data name="Position.ListTitle" xml:space="preserve">
+    <value>Positions</value>
+  </data>
+  <data name="Position.MaxProjects" xml:space="preserve">
+    <value>Max Projects</value>
+  </data>
+  <data name="Position.NoAccessRules" xml:space="preserve">
+    <value>No access rules. A {0} position is open to every signed-in user; a {1} position with no rules is closed to everyone.</value>
+  </data>
+  <data name="Position.NoPositions" xml:space="preserve">
+    <value>No positions found.</value>
+  </data>
+  <data name="Position.OpenForApplications" xml:space="preserve">
+    <value>Open for applications</value>
+  </data>
+  <data name="Position.Operator" xml:space="preserve">
+    <value>Operator</value>
+  </data>
+  <data name="Position.ProjectTags" xml:space="preserve">
+    <value>Project Tags</value>
+  </data>
+  <data name="Position.ProjectTagsHint" xml:space="preserve">
+    <value>A generated CV includes the candidate's most recent projects carrying {0} one of these tags, capped at Max Projects.</value>
+  </data>
+  <data name="Position.Public" xml:space="preserve">
+    <value>Public</value>
+  </data>
+  <data name="Position.PublicWord" xml:space="preserve">
+    <value>Public</value>
+  </data>
+  <data name="Position.RecentlyUsed" xml:space="preserve">
+    <value>Recently used</value>
+  </data>
+  <data name="Position.RemoveRuleFor" xml:space="preserve">
+    <value>Remove rule for</value>
+  </data>
+  <data name="Position.RequiredAttributes" xml:space="preserve">
+    <value>Required Attributes</value>
+  </data>
+  <data name="Position.RestrictedWord" xml:space="preserve">
+    <value>Restricted</value>
+  </data>
+  <data name="Position.SelectAttribute" xml:space="preserve">
+    <value>Select attribute...</value>
+  </data>
+  <data name="Position.Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Profile.AddAttribute" xml:space="preserve">
+    <value>+ Add Attribute</value>
+  </data>
+  <data name="Profile.AddAttributeTitle" xml:space="preserve">
+    <value>Add Attribute</value>
+  </data>
+  <data name="Profile.Conflict" xml:space="preserve">
+    <value>Someone else modified this data. Please reload to see the current values, then reapply your changes.</value>
+  </data>
+  <data name="Profile.Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="Profile.Me" xml:space="preserve">
+    <value>Me</value>
+  </data>
+  <data name="Profile.MyProfile" xml:space="preserve">
+    <value>My Profile</value>
+  </data>
+  <data name="Profile.NoInfoAttributes" xml:space="preserve">
+    <value>No info attributes added yet.</value>
+  </data>
+  <data name="Profile.ReloadAndStartOver" xml:space="preserve">
+    <value>Reload and start over</value>
+  </data>
+  <data name="Profile.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Profile.Saving" xml:space="preserve">
+    <value>Saving…</value>
+  </data>
+  <data name="Profile.SearchAttributes" xml:space="preserve">
+    <value>Search attributes...</value>
+  </data>
+  <data name="Project.Create" xml:space="preserve">
+    <value>Create Project</value>
+  </data>
+  <data name="Project.CreateTitle" xml:space="preserve">
+    <value>Create Project</value>
+  </data>
+  <data name="Project.Description" xml:space="preserve">
+    <value>Description (Markdown)</value>
+  </data>
+  <data name="Project.EditTitle" xml:space="preserve">
+    <value>Edit Project</value>
+  </data>
+  <data name="Project.EndDate" xml:space="preserve">
+    <value>End Date</value>
+  </data>
+  <data name="Project.ListTitle" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Project.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Project.NoProjects" xml:space="preserve">
+    <value>No projects found.</value>
+  </data>
+  <data name="Project.Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Project.StartDate" xml:space="preserve">
+    <value>Start Date</value>
+  </data>
+  <data name="Project.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Project.Url" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="Reconnect.Failed" xml:space="preserve">
+    <value>Rejoin failed... trying again in</value>
+  </data>
+  <data name="Reconnect.FailedTitle" xml:space="preserve">
+    <value>Failed to rejoin.</value>
+  </data>
+  <data name="Reconnect.Paused" xml:space="preserve">
+    <value>The session has been paused by the server.</value>
+  </data>
+  <data name="Reconnect.Rejoining" xml:space="preserve">
+    <value>Rejoining the server...</value>
+  </data>
+  <data name="Reconnect.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Reconnect.ResumeFailed" xml:space="preserve">
+    <value>Failed to resume the session.</value>
+  </data>
+  <data name="Reconnect.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Reconnect.RetryHint" xml:space="preserve">
+    <value>Please retry or reload the page.</value>
+  </data>
+  <data name="Reconnect.Seconds" xml:space="preserve">
+    <value>seconds.</value>
+  </data>
+  <data name="Search.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Search.NoResults" xml:space="preserve">
+    <value>No results found.</value>
+  </data>
+  <data name="Search.Results" xml:space="preserve">
+    <value>Search Results</value>
+  </data>
+  <data name="Search.ResultsFor" xml:space="preserve">
+    <value>Results for "{0}"</value>
+  </data>
+  <data name="Search.Searching" xml:space="preserve">
+    <value>Searching...</value>
+  </data>
+  <data name="Search.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="TagInput.Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="TopBar.Brand" xml:space="preserve">
+    <value>CV Manager</value>
+  </data>
+  <data name="TopBar.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="TopBar.Search" xml:space="preserve">
+    <value>Search positions, CVs...</value>
+  </data>
+  <data name="TopBar.SearchAria" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="TopBar.SignIn" xml:space="preserve">
+    <value>Sign In</value>
+  </data>
+  <data name="TopBar.SignOut" xml:space="preserve">
+    <value>Sign Out</value>
+  </data>
+  <data name="TopBar.UserMenu" xml:space="preserve">
+    <value>User menu</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="List.Selected" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="List.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="List.ConfirmDelete" xml:space="preserve">
+    <value>Delete the selected rows? This cannot be undone.</value>
+  </data>
+  <data name="List.ConfirmDeletePosition" xml:space="preserve">
+    <value>Delete the selected positions? This cannot be undone.</value>
+  </data>
+  <data name="List.ConfirmDeleteProject" xml:space="preserve">
+    <value>Delete the selected projects? This cannot be undone.</value>
+  </data>
+  <data name="Common.Present" xml:space="preserve">
+    <value>Present</value>
+  </data>
+  <data name="Attribute.SearchPlaceholder" xml:space="preserve">
+    <value>Search attributes...</value>
+  </data>
+  <data name="Attribute.BuiltIn" xml:space="preserve">
+    <value>Built-in</value>
+  </data>
+  <data name="Attribute.NewOptionPlaceholder" xml:space="preserve">
+    <value>New option</value>
+  </data>
+  <data name="Position.TemplateHint" xml:space="preserve">
+    <value>Template changes are saved with the position. Existing CVs need no rewriting - their content is resolved live.</value>
+  </data>
+  <data name="Position.MaxProjectsIncluded" xml:space="preserve">
+    <value>Max projects to include: {0}</value>
+  </data>
+  <data name="Position.SubmittedCvs" xml:space="preserve">
+    <value>Submitted CVs ({0})</value>
+  </data>
+  <data name="TagInput.Placeholder" xml:space="preserve">
+    <value>Add tags...</value>
+  </data>
+  <data name="ImageUploader.NotConfigured" xml:space="preserve">
+    <value>Image upload is not configured (Cloudinary settings are missing).</value>
+  </data>
+  <data name="ImageUploader.UploadFailed" xml:space="preserve">
+    <value>The upload failed. Please try again.</value>
+  </data>
+  <data name="Profile.Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Profile.ManageProjects" xml:space="preserve">
+    <value>Manage projects</value>
+  </data>
+  <data name="Profile.NoProjects" xml:space="preserve">
+    <value>No projects added yet.</value>
+  </data>
+  <data name="Profile.OpenCvs" xml:space="preserve">
+    <value>Open CVs</value>
+  </data>
+  <data name="Profile.CvsHint" xml:space="preserve">
+    <value>Your CVs are generated from the positions you can access. One CV per position.</value>
+  </data>
+  <data name="Project.NotFound" xml:space="preserve">
+    <value>Project not found.</value>
+  </data>
+  <data name="Admin.Users" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Admin.SearchUsers" xml:space="preserve">
+    <value>Search users...</value>
+  </data>
+  <data name="Admin.AssignRole" xml:space="preserve">
+    <value>Assign role</value>
+  </data>
+  <data name="Admin.RemoveRole" xml:space="preserve">
+    <value>Remove role</value>
+  </data>
+  <data name="Admin.Block" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="Admin.Unblock" xml:space="preserve">
+    <value>Unblock</value>
+  </data>
+  <data name="Admin.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Admin.Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Admin.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="Admin.AccountStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Admin.Blocked" xml:space="preserve">
+    <value>Blocked</value>
+  </data>
+  <data name="Admin.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Admin.NoUsers" xml:space="preserve">
+    <value>No users found.</value>
+  </data>
+  <data name="Admin.RoleUpdated" xml:space="preserve">
+    <value>Updated role: {0}</value>
+  </data>
+  <data name="Admin.ConfirmDeleteUsers" xml:space="preserve">
+    <value>Delete the selected users? This cannot be undone.</value>
+  </data>
+  <data name="Search.TypePosition" xml:space="preserve">
+    <value>Position</value>
+  </data>
+  <data name="Search.TypeCv" xml:space="preserve">
+    <value>CV</value>
+  </data>
+  <data name="Discussion.MessageCount" xml:space="preserve">
+    <value>{0} messages</value>
+  </data>
+  <data name="Discussion.SignInToPost" xml:space="preserve">
+    <value>to join the discussion.</value>
+  </data>
+  <data name="Cv.EditTitleWithName" xml:space="preserve">
+    <value>Edit CV: {0}</value>
+  </data>
+  <data name="Cv.PublishLocked" xml:space="preserve">
+    <value>Publish is locked until every required attribute (highlighted red) is filled: {0}</value>
+  </data>
+  <data name="Cv.AttributesSaved" xml:space="preserve">
+    <value>Attribute values saved to your profile.</value>
+  </data>
+  <data name="Auth.InvalidCredentials" xml:space="preserve">
+    <value>Invalid email or password.</value>
+  </data>
+  <data name="Auth.AccountBlocked" xml:space="preserve">
+    <value>This account has been blocked.</value>
+  </data>
+  <data name="Auth.ExternalProviderNotConfigured" xml:space="preserve">
+    <value>Google/GitHub sign-in is not configured yet.</value>
+  </data>
+  <data name="Auth.ExternalFailed" xml:space="preserve">
+    <value>External sign-in failed. Try again.</value>
+  </data>
+  <data name="Auth.NoEmail" xml:space="preserve">
+    <value>Your account has no verified email.</value>
+  </data>
+  <data name="Auth.AccountCreateFailed" xml:space="preserve">
+    <value>Could not create your account.</value>
+  </data>
+  <data name="Auth.RoleAssignFailed" xml:space="preserve">
+    <value>Could not assign your role.</value>
+  </data>
+  <data name="Auth.LinkFailed" xml:space="preserve">
+    <value>Could not link the provider to your account.</value>
+  </data>
+  <data name="Auth.AllFieldsRequired" xml:space="preserve">
+    <value>All fields are required.</value>
+  </data>
+  <data name="Auth.PasswordsDoNotMatch" xml:space="preserve">
+    <value>Passwords do not match.</value>
+  </data>
+  <data name="TopBar.ToggleTheme" xml:space="preserve">
+    <value>Toggle theme</value>
+  </data>
+</root>

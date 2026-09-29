@@ -2,7 +2,6 @@
 @using CvManagement.Services.Auth
 @using CvManagement.Services.Markdown
 @using CvManagement.Data.Entities.Discussions
-@using CvManagement.Hubs
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IDiscussionService DiscussionService
 @inject ICurrentUserService CurrentUserService
@@ -12,17 +11,18 @@
 
 <div class="card mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Discussion</h5>
-        <span class="badge bg-secondary">@_messages.Count messages</span>
+        <h5 class="mb-0">@Loc["Discussion.Title"]</h5>
+        <span class="badge bg-secondary">@Loc["Discussion.MessageCount", _messages.Count]</span>
     </div>
     <div class="card-body" style="max-height: 400px; overflow-y: auto;">
         @if (_messages.Any())
         {
             @foreach (var msg in _messages)
             {
-                <div class="mb-3 p-2 rounded" style="background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);">
+                <div class="mb-3 p-2 rounded border">
                     <div class="d-flex justify-content-between">
                         <strong>
+                            @* Spec §10: a Recruiter sees the author name as a link to the public profile. *@
                             @if (_isRecruiter)
                             {
                                 <a href="/users/@msg.UserId">@msg.User?.DisplayName</a>
@@ -40,30 +40,52 @@
         }
         else
         {
-            <p class="text-muted">No messages yet. Start the discussion!</p>
+            <p class="text-muted">@Loc["Discussion.NoMessages"]</p>
         }
     </div>
     <div class="card-footer">
-        <div class="input-group">
-            <textarea class="form-control" rows="2" placeholder="Write a message..." @bind="_newMessage" @onkeydown="HandleKeyDown"></textarea>
-            <button class="btn btn-primary" @onclick="Send" disabled="@(string.IsNullOrWhiteSpace(_newMessage) || !_connected)">Send</button>
-        </div>
+        @if (_isAuthenticated)
+        {
+            <MarkdownEditor Value="@_newMessage" ValueChanged="OnMessageChanged"
+                            Placeholder="@Loc["Discussion.Placeholder"]" Rows="3" />
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary" @onclick="Send"
+                        disabled="@(string.IsNullOrWhiteSpace(_newMessage) || !_connected)">
+                    @Loc["Discussion.Send"]
+                </button>
+            </div>
+        }
+        else
+        {
+            @* Spec §3.2: anonymous visitors browse read-only. *@
+            <p class="text-muted mb-0">
+                <a href="/login">@Loc["TopBar.SignIn"]</a> @Loc["Discussion.SignInToPost"]
+            </p>
+        }
     </div>
 </div>
 
 @code {
     [Parameter] public Guid PositionId { get; set; }
 
-    private List<DiscussionMessage> _messages = new();
+    private List<DiscussionMessage> _messages = [];
     private HubConnection? _hubConnection;
     private string _newMessage = "";
     private bool _connected;
     private bool _isRecruiter;
+    private bool _isAuthenticated;
 
     protected override async Task OnInitializedAsync()
     {
-        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
+        _isAuthenticated = CurrentUserService.IsAuthenticated;
+        _isRecruiter = await CurrentUserService.IsInRoleAsync(RoleNames.Recruiter)
+            || await CurrentUserService.IsInRoleAsync(RoleNames.Administrator);
         _messages = await DiscussionService.GetMessagesAsync(PositionId);
+
+        // The hub requires authentication, so an anonymous reader never connects: doing so
+        // would only fault the connection.
+        if (!_isAuthenticated)
+            return;
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/hubs/discussion"))
@@ -81,17 +103,12 @@
         _connected = true;
     }
 
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !e.ShiftKey)
-        {
-            _ = Send();
-        }
-    }
+    private void OnMessageChanged(string value) => _newMessage = value;
 
     private async Task Send()
     {
-        if (_hubConnection is null || string.IsNullOrWhiteSpace(_newMessage)) return;
+        if (_hubConnection is null || string.IsNullOrWhiteSpace(_newMessage))
+            return;
 
         await _hubConnection.InvokeAsync("SendMessage", PositionId, _newMessage);
         _newMessage = "";

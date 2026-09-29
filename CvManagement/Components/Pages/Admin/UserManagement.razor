@@ -1,0 +1,221 @@
+@page "/admin/users"
+@using CvManagement.Services.Admin
+@using CvManagement.Services.Auth
+@using CvManagement.Data.Entities.Identity
+@attribute [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+@inject IAdminUserService AdminUserService
+@inject ICurrentUserService CurrentUserService
+@inject IJSRuntime Js
+@rendermode InteractiveServer
+
+<h3>@Loc["Admin.Users"]</h3>
+
+@if (_message is not null)
+{
+    <div class="alert alert-info py-2">@_message</div>
+}
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+
+@* Spec §2: actions are collected in a toolbar and act on the selection. *@
+<div class="table-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input type="text" class="form-control form-control-sm" style="max-width: 16rem;"
+           placeholder="@Loc["Admin.SearchUsers"]"
+           @bind="_searchTerm" @bind:event="oninput" />
+
+    <span class="text-muted small">@Loc["List.Selected", _selectedIds.Count]</span>
+
+    <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+        <select class="form-select form-select-sm w-auto" @bind="_roleToToggle">
+            @foreach (var role in RoleNames.All)
+            {
+                <option value="@role">@role</option>
+            }
+        </select>
+        <button class="btn btn-outline-primary btn-sm" disabled="@(_selectedIds.Count != 1)"
+                @onclick="() => ToggleRoleAsync(true)">@Loc["Admin.AssignRole"]</button>
+        @* Self-demotion is allowed (spec §3.7), so this stays enabled for the admin's own row. *@
+        <button class="btn btn-outline-secondary btn-sm" disabled="@(_selectedIds.Count != 1)"
+                @onclick="() => ToggleRoleAsync(false)">@Loc["Admin.RemoveRole"]</button>
+        <button class="btn btn-outline-warning btn-sm" disabled="@(_selectedIds.Count == 0)"
+                @onclick="BlockSelected">@Loc["Admin.Block"]</button>
+        <button class="btn btn-outline-success btn-sm" disabled="@(_selectedIds.Count == 0)"
+                @onclick="UnblockSelected">@Loc["Admin.Unblock"]</button>
+        <button class="btn btn-outline-danger btn-sm" disabled="@(_selectedIds.Count == 0)"
+                @onclick="DeleteSelected">@Loc["Admin.Delete"]</button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th style="width: 2.5rem;">
+                    <input type="checkbox" class="form-check-input" aria-label="@Loc["List.SelectAll"]"
+                           checked="@_allSelected" @onchange="ToggleSelectAll" />
+                </th>
+                <th>@Loc["Common.Name"]</th>
+                <th>@Loc["Admin.Email"]</th>
+                <th>@Loc["Admin.Roles"]</th>
+                <th>@Loc["Admin.AccountStatus"]</th>
+                <th>@Loc["Common.Created"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in FilteredUsers)
+            {
+                var selected = _selectedIds.Contains(user.Id);
+                <tr class="@(selected ? "is-selected" : null)">
+                    <td>
+                        <input type="checkbox" class="form-check-input" aria-label="@user.DisplayName"
+                               checked="@selected" @onchange="() => ToggleSelection(user.Id)" />
+                    </td>
+                    <td>@user.DisplayName</td>
+                    <td>@user.Email</td>
+                    <td>
+                        @foreach (var role in user.Roles)
+                        {
+                            <span class="badge bg-secondary me-1">@role</span>
+                        }
+                    </td>
+                    <td>
+                        <span class="badge @(user.IsBlocked ? "bg-danger" : "bg-success")">
+                            @(user.IsBlocked ? Loc["Admin.Blocked"] : Loc["Admin.Active"])
+                        </span>
+                    </td>
+                    <td>@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (!FilteredUsers.Any())
+{
+    <p class="text-muted">@Loc["Admin.NoUsers"]</p>
+}
+
+@code {
+    private List<AdminUserSummary> _users = [];
+    private HashSet<Guid> _selectedIds = [];
+    private string _searchTerm = "";
+    private string _roleToToggle = RoleNames.Candidate;
+    private string? _error;
+    private string? _message;
+    private Guid? _currentUserId;
+
+    // Filtered in memory: the list is loaded once, so a keystroke never hits the database.
+    private IEnumerable<AdminUserSummary> FilteredUsers =>
+        _users.Where(u => _searchTerm.Length == 0
+                          || u.DisplayName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+                          || u.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private bool _allSelected => _users.Any() && _users.All(u => _selectedIds.Contains(u.Id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = await CurrentUserService.GetUserIdAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        // Roles are resolved server-side; the page filters the returned rows locally so
+        // typing does not re-query on every keystroke.
+        _users = await AdminUserService.ListUsersAsync();
+    }
+
+    private void ToggleSelection(Guid id)
+    {
+        if (!_selectedIds.Remove(id))
+            _selectedIds.Add(id);
+
+        ResetMessages();
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (e.Value is true)
+            _selectedIds.UnionWith(_users.Select(u => u.Id));
+        else
+            _selectedIds.Clear();
+    }
+
+    private async Task ToggleRoleAsync(bool assigned)
+    {
+        if (_currentUserId is null)
+            return;
+
+        ResetMessages();
+
+        var target = _selectedIds.Single();
+        try
+        {
+            await AdminUserService.SetRoleAsync(_currentUserId.Value, target, _roleToToggle, assigned);
+            _message = Loc["Admin.RoleUpdated", _roleToToggle];
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    // Blocking or deleting your own account would lock the administrator out, so the service
+    // rejects it (self-demotion of the role is still explicitly allowed).
+    private Task BlockSelected() => SetBlockedForSelectionAsync(true);
+
+    private Task UnblockSelected() => SetBlockedForSelectionAsync(false);
+
+    private async Task SetBlockedForSelectionAsync(bool blocked)
+    {
+        if (_currentUserId is null)
+            return;
+
+        ResetMessages();
+
+        await RunAsync(() =>
+            AdminUserService.SetBlockedManyAsync(_currentUserId.Value, _selectedIds.ToList(), blocked));
+
+        _selectedIds.Clear();
+        await LoadAsync();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (_currentUserId is null)
+            return;
+
+        ResetMessages();
+
+        var confirmed = await Js.InvokeAsync<bool>("confirm", Loc["Admin.ConfirmDeleteUsers"].Value);
+        if (!confirmed)
+            return;
+
+        await RunAsync(() =>
+            AdminUserService.DeleteManyAsync(_currentUserId.Value, _selectedIds.ToList()));
+
+        _selectedIds.Clear();
+        await LoadAsync();
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void ResetMessages()
+    {
+        _error = null;
+        _message = null;
+    }
+}

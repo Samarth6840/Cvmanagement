@@ -15,7 +15,7 @@
 
 @if (_position is null)
 {
-    <p>Loading...</p>
+    <p>@Loc["Common.Loading"]</p>
 }
 else
 {
@@ -33,22 +33,22 @@ else
                 <span class="text-danger">@_error</span>
             }
             <span class="badge @(_position.IsOpen ? "bg-success" : "bg-secondary") fs-6">
-                @(_position.IsOpen ? "Open" : "Closed")
+                @(_position.IsOpen ? Loc["Common.Open"] : Loc["Common.Closed"])
             </span>
             @if (_isRecruiter)
             {
-                <a href="/positions/edit/@_position.Id" class="btn btn-outline-primary btn-sm">Edit</a>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="Duplicate">Duplicate</button>
+                <a href="/positions/edit/@_position.Id" class="btn btn-outline-primary btn-sm">@Loc["Common.Edit"]</a>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="Duplicate">@Loc["Position.Duplicate"]</button>
             }
             @if (_isCandidate && _position.IsOpen)
             {
                 @if (_canAccess)
                 {
-                    <a href="/cvs/create/@_position.Id" class="btn btn-primary btn-sm">Create CV</a>
+                    <a href="/cvs/create/@_position.Id" class="btn btn-primary btn-sm">@Loc["Position.CreateCv"]</a>
                 }
                 else
                 {
-                    <span class="btn btn-primary btn-sm disabled" title="Your profile does not match this position's access rules">Create CV</span>
+                    <span class="btn btn-primary btn-sm disabled" title="@Loc["Cv.NoAccess"]">@Loc["Position.CreateCv"]</span>
                 }
             }
         </div>
@@ -66,7 +66,7 @@ else
     @if (_position.AttributeRules.Any())
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Required Attributes</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Position.RequiredAttributes"]</h5></div>
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2">
                     @foreach (var rule in _position.AttributeRules.OrderBy(r => r.SortOrder))
@@ -84,7 +84,7 @@ else
     @if (_position.Tags.Any())
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Project Tags</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Position.ProjectTags"]</h5></div>
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2">
                     @foreach (var tag in _position.Tags)
@@ -92,7 +92,7 @@ else
                         <span class="badge bg-info">@tag.Tag</span>
                     }
                 </div>
-                <p class="text-muted mt-2 mb-0">Max projects to include: @_position.MaxProjects</p>
+                <p class="text-muted mt-2 mb-0">@Loc["Position.MaxProjectsIncluded", _position.MaxProjects]</p>
             </div>
         </div>
     }
@@ -100,11 +100,11 @@ else
     @if (_visibleCvs.Any())
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Submitted CVs (@_visibleCvs.Count)</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Position.SubmittedCvs", _visibleCvs.Count]</h5></div>
             <div class="card-body">
                 <table class="table table-sm table-striped">
                     <thead>
-                        <tr><th>CV</th><th>Candidate</th><th>Likes</th></tr>
+                        <tr><th>@Loc["Position.CvColumn"]</th><th>@Loc["Position.Candidate"]</th><th>@Loc["Position.Likes"]</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var cv in _visibleCvs)
@@ -136,8 +136,8 @@ else
     protected override async Task OnInitializedAsync()
     {
         _position = await PositionService.GetByIdAsync(Guid.Parse(Id));
-        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
-        _isCandidate = await CurrentUserService.IsInRoleAsync("Candidate");
+        _isRecruiter = await CurrentUserService.IsInRoleAsync(RoleNames.Recruiter) || await CurrentUserService.IsInRoleAsync(RoleNames.Administrator);
+        _isCandidate = await CurrentUserService.IsInRoleAsync(RoleNames.Candidate);
 
         if (_position is not null)
         {

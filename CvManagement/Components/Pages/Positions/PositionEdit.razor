@@ -2,16 +2,22 @@
 @using CvManagement.Services.Positions
 @using CvManagement.Services.Attributes
 @using CvManagement.Services.Auth
+@using CvManagement.Services.Concurrency
 @using CvManagement.Data.Entities.Attributes
 @using CvManagement.Data.Entities.Positions
-@attribute [Authorize(Policy = "RecruiterOnly")]
+@attribute [Authorize(Policy = AuthorizationPolicies.RecruiterOnly)]
 @inject IPositionService PositionService
 @inject IAttributeService AttributeService
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<h3>@(_isNew ? "Create Position" : "Edit Position")</h3>
+<h3>@(_isNew ? Loc["Position.CreateTitle"] : Loc["Position.EditTitle"])</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error <button class="btn btn-sm btn-warning ms-2" @onclick="Reload">@Loc["Common.Reload"]</button></div>
+}
 
 @if (_position is not null)
 {
@@ -19,33 +25,34 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-8 mb-3">
-                    <label class="form-label">Title</label>
+                    <label class="form-label">@Loc["Common.Title"]</label>
                     <input type="text" class="form-control" @bind="_position.Title" />
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">Company</label>
+                    <label class="form-label">@Loc["Common.Company"]</label>
                     <input type="text" class="form-control" @bind="_position.Company" />
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Description (Markdown)</label>
-                <textarea class="form-control" rows="4" @bind="_position.Description"></textarea>
+                <MarkdownEditor Label="@(Loc["Position.Description"])"
+                                Value="@_position.Description"
+                                ValueChanged="OnDescriptionChanged" />
             </div>
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" @bind="_position.IsPublic" />
-                        <label class="form-check-label">Public</label>
+                        <label class="form-check-label">@Loc["Position.Public"]</label>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" @bind="_position.IsOpen" />
-                        <label class="form-check-label">Open for applications</label>
+                        <label class="form-check-label">@Loc["Position.OpenForApplications"]</label>
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">Max Projects</label>
+                    <label class="form-label">@Loc["Position.MaxProjects"]</label>
                     <input type="number" class="form-control" @bind="_position.MaxProjects" min="1" max="20" />
                 </div>
             </div>
@@ -53,61 +60,158 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h5 class="mb-0">Attribute Template</h5></div>
+        <div class="card-header"><h5 class="mb-0">@Loc["Position.AttributeTemplate"]</h5></div>
         <div class="card-body">
             @if (_recentAttributes.Any())
             {
                 <div class="mb-2">
-                    <small class="text-muted d-block mb-1">Recently used</small>
+                    <small class="text-muted d-block mb-1">@Loc["Position.RecentlyUsed"]</small>
                     @foreach (var attr in _recentAttributes)
                     {
                         <button class="btn btn-sm btn-outline-secondary me-1 mb-1"
-                                @onclick="() => AddAttribute(attr.Id)"
-                                disabled="@(IsInTemplate(attr.Id))">@attr.Name</button>
+                                @onclick="() => AddAttribute(attr)"
+                                disabled="@IsInTemplate(attr.Id)">@attr.Name</button>
                     }
                 </div>
             }
             <div class="d-flex gap-2 mb-3">
                 <select class="form-select form-select-sm w-auto" @bind="_categoryFilter">
-                    <option value="">All categories</option>
+                    <option value="">@Loc["Position.AllCategories"]</option>
                     @foreach (var cat in Enum.GetValues<AttributeCategory>())
                     {
                         <option value="@cat">@cat</option>
                     }
                 </select>
                 <select class="form-select form-select-sm" @bind="_selectedAttrId">
-                    <option value="">Select attribute...</option>
+                    <option value="">@Loc["Position.SelectAttribute"]</option>
                     @foreach (var attr in FilteredAttributes)
                     {
                         <option value="@attr.Id">@attr.Name (@attr.DataType)</option>
                     }
                 </select>
-                <button class="btn btn-sm btn-outline-primary" @onclick="AddAttributeRule" disabled="@(string.IsNullOrEmpty(_selectedAttrId))">Add</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick="AddSelectedAttribute"
+                        disabled="@(string.IsNullOrEmpty(_selectedAttrId))">@Loc["Common.Add"]</button>
             </div>
             @foreach (var rule in _attributeRules)
             {
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <span>@rule.AttributeDefinition.Name</span>
                     <div class="form-check form-check-inline">
-                        <input type="checkbox" class="form-check-input" checked="@rule.IsRequired" @onchange="e => rule.IsRequired = e.Value is true" />
-                        <label class="form-check-label small">Required</label>
+                        <input type="checkbox" class="form-check-input" checked="@rule.IsRequired"
+                               @onchange="e => rule.IsRequired = e.Value is true" />
+                        <label class="form-check-label small">@Loc["Common.Required"]</label>
                     </div>
-                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAttributeRule(rule)">Remove</button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAttributeRule(rule)">
+                        @Loc["Common.Remove"]
+                    </button>
+                </div>
+            }
+            <p class="text-muted small mb-0">@Loc["Position.TemplateHint"]</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">@Loc["Position.ProjectTags"]</h5></div>
+        <div class="card-body">
+            <TagInput Label="@(Loc["Position.ProjectTags"])" Tags="_tags" TagsChanged="OnTagsChanged"
+                      Suggestions="_knownTags" Placeholder="@(Loc["TagInput.Placeholder"])" />
+            <small class="text-muted">@(Loc["Position.ProjectTagsHint", Loc["Position.Every"]])</small>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">@Loc["Position.AccessRules"]</h5></div>
+        <div class="card-body">
+            <p class="text-muted small">
+                @(Loc["Position.AccessRulesHint", Loc["Position.RestrictedWord"], Loc["Position.EveryWord"], Loc["Position.PublicWord"]])
+            </p>
+            <div class="d-flex gap-2 mb-3 align-items-end flex-wrap">
+                <div>
+                    <label class="form-label small mb-1">@Loc["Position.Attribute"]</label>
+                    <select class="form-select form-select-sm" @bind="_selectedRuleAttrId">
+                        <option value="">@Loc["Position.SelectAttribute"]</option>
+                        @foreach (var attr in FilterableAttributes)
+                        {
+                            <option value="@attr.Id">@attr.Name (@attr.DataType)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1">@Loc["Position.Operator"]</label>
+                    <select class="form-select form-select-sm" @bind="_selectedRuleOperator">
+                        @foreach (var op in AvailableOperators)
+                        {
+                            <option value="@op">@op</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1">@Loc["Position.Value"]</label>
+                    @if (SelectedRuleAttribute?.DataType == AttributeDataType.Boolean)
+                    {
+                        <select class="form-select form-select-sm" @bind="_selectedRuleValue">
+                            <option value="true">@Loc["Common.Yes"]</option>
+                            <option value="false">@Loc["Common.No"]</option>
+                        </select>
+                    }
+                    else
+                    {
+                        <input type="text" class="form-control form-control-sm" @bind="_selectedRuleValue" />
+                    }
+                </div>
+                <button class="btn btn-sm btn-outline-primary" @onclick="AddAccessRule"
+                        disabled="@(!CanAddAccessRule)">@Loc["Common.Add"]</button>
+            </div>
+            @if (_accessRules.Count == 0)
+            {
+                <p class="text-muted mb-0">
+                    @(Loc["Position.NoAccessRules", Loc["Position.PublicWord"], Loc["Position.RestrictedWord"]])
+                </p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-3">
+                        <thead>
+                            <tr>
+                                <th>@Loc["Position.Attribute"]</th>
+                                <th>@Loc["Position.Operator"]</th>
+                                <th>@Loc["Position.Value"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rule in _accessRules)
+                            {
+                                <tr>
+                                    <td>@rule.AttributeDefinition.Name</td>
+                                    <td>@rule.Operator</td>
+                                    <td>@rule.FilterValue</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex gap-2 align-items-end">
+                    <div>
+                        <label class="form-label small mb-1">@Loc["Position.RemoveRuleFor"]</label>
+                        <select class="form-select form-select-sm" @bind="_ruleToRemoveAttrId">
+                            <option value="">@Loc["Position.SelectAttribute"]</option>
+                            @foreach (var rule in _accessRules)
+                            {
+                                <option value="@rule.AttributeDefinitionId">@rule.AttributeDefinition.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="RemoveSelectedAccessRule"
+                            disabled="@string.IsNullOrEmpty(_ruleToRemoveAttrId)">@Loc["Common.Remove"]</button>
                 </div>
             }
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header"><h5 class="mb-0">Project Tags</h5></div>
-        <div class="card-body">
-            <TagInput Tags="_tags" TagsChanged="OnTagsChanged" />
-        </div>
-    </div>
-
     <div class="d-flex gap-2">
-        <button class="btn btn-primary" @onclick="Save">Save</button>
-        <a href="/positions" class="btn btn-secondary">Cancel</a>
+        <button class="btn btn-primary" @onclick="Save">@Loc["Common.Save"]</button>
+        <a href="/positions" class="btn btn-secondary">@Loc["Common.Cancel"]</a>
     </div>
 }
 
@@ -115,85 +219,181 @@
     [Parameter] public string? Id { get; set; }
 
     private Position? _position;
-    private List<AttributeDefinition> _allAttributes = new();
-    private List<AttributeDefinition> _recentAttributes = new();
-    private List<PositionAttributeRule> _attributeRules = new();
-    private List<string> _tags = new();
+    private List<AttributeDefinition> _allAttributes = [];
+    private List<AttributeDefinition> _recentAttributes = [];
+    private List<PositionAttributeRule> _attributeRules = [];
+    private List<string> _tags = [];
+    private IReadOnlyCollection<string> _knownTags = [];
+    private List<PositionAccessRule> _accessRules = [];
     private bool _isNew;
+    private string? _error;
     private string _selectedAttrId = "";
     private string _categoryFilter = "";
+    private string _selectedRuleAttrId = "";
+    private string _ruleToRemoveAttrId = "";
+    private PositionAccessOperator _selectedRuleOperator = PositionAccessOperator.Equals;
+    private string _selectedRuleValue = "";
 
-    private List<AttributeDefinition> FilteredAttributes =>
+    private IEnumerable<AttributeDefinition> FilteredAttributes =>
         string.IsNullOrEmpty(_categoryFilter)
             ? _allAttributes
-            : _allAttributes.Where(a => a.Category.ToString() == _categoryFilter).ToList();
+            : _allAttributes.Where(a => a.Category.ToString() == _categoryFilter);
+
+    // Image has no meaningful comparison in an access rule.
+    private IEnumerable<AttributeDefinition> FilterableAttributes =>
+        _allAttributes.Where(a => AccessRuleEvaluator.GetOperatorsFor(a.DataType).Count > 0);
+
+    private AttributeDefinition? SelectedRuleAttribute =>
+        string.IsNullOrEmpty(_selectedRuleAttrId)
+            ? null
+            : _allAttributes.FirstOrDefault(a => a.Id == Guid.Parse(_selectedRuleAttrId));
+
+    private IEnumerable<PositionAccessOperator> AvailableOperators =>
+        SelectedRuleAttribute is null
+            ? []
+            : AccessRuleEvaluator.GetOperatorsFor(SelectedRuleAttribute.DataType);
+
+    private bool CanAddAccessRule =>
+        SelectedRuleAttribute is not null
+        && !IsInAccessRules(SelectedRuleAttribute.Id)
+        && !string.IsNullOrWhiteSpace(_selectedRuleValue);
 
     protected override async Task OnInitializedAsync()
     {
         _allAttributes = await AttributeService.GetAllAsync();
         _recentAttributes = await AttributeService.GetRecentlyUsedAsync(10);
+        _knownTags = await PositionService.GetAllTagNamesAsync();
 
         if (string.IsNullOrEmpty(Id) || Id == "new")
         {
             _isNew = true;
-            _position = new Position();
+            _position = new Position { IsPublic = true };
         }
         else
         {
-            _position = await PositionService.GetByIdAsync(Guid.Parse(Id));
-            if (_position is not null)
-            {
-                _attributeRules = _position.AttributeRules.ToList();
-                _tags = _position.Tags.Select(t => t.Tag).ToList();
-            }
+            await LoadAsync(Guid.Parse(Id));
         }
+    }
+
+    private async Task LoadAsync(Guid id)
+    {
+        _position = await PositionService.GetByIdAsync(id);
+        if (_position is not null)
+        {
+            _attributeRules = _position.AttributeRules.OrderBy(r => r.SortOrder).ToList();
+            _accessRules = _position.AccessRules.ToList();
+            _tags = _position.Tags.Select(t => t.Tag).ToList();
+        }
+        _error = null;
+    }
+
+    private void OnDescriptionChanged(string value)
+    {
+        if (_position is not null)
+            _position.Description = value;
     }
 
     private bool IsInTemplate(Guid attrId) => _attributeRules.Any(r => r.AttributeDefinitionId == attrId);
 
-    private async Task AddAttribute(Guid attrId)
+    private void AddAttribute(AttributeDefinition attribute)
     {
-        if (_position is null || IsInTemplate(attrId)) return;
-        await PositionService.AddAttributeRuleAsync(_position.Id, attrId, false);
-        var attr = _allAttributes.First(a => a.Id == attrId);
-        _attributeRules.Add(new PositionAttributeRule { AttributeDefinition = attr, AttributeDefinitionId = attrId });
+        if (IsInTemplate(attribute.Id))
+            return;
+
+        _attributeRules.Add(new PositionAttributeRule
+        {
+            AttributeDefinitionId = attribute.Id,
+            AttributeDefinition = attribute,
+            SortOrder = _attributeRules.Count
+        });
         _selectedAttrId = "";
+        _error = null;
     }
 
-    private async Task AddAttributeRule()
+    private void AddSelectedAttribute()
     {
-        if (_position is null || string.IsNullOrEmpty(_selectedAttrId)) return;
-        await AddAttribute(Guid.Parse(_selectedAttrId));
+        if (string.IsNullOrEmpty(_selectedAttrId))
+            return;
+
+        var attribute = _allAttributes.FirstOrDefault(a => a.Id == Guid.Parse(_selectedAttrId));
+        if (attribute is not null)
+            AddAttribute(attribute);
     }
 
-    private async Task RemoveAttributeRule(PositionAttributeRule rule)
+    private void RemoveAttributeRule(PositionAttributeRule rule)
     {
-        if (_position is null) return;
-        await PositionService.RemoveAttributeRuleAsync(_position.Id, rule.AttributeDefinitionId);
         _attributeRules.Remove(rule);
+        _error = null;
+    }
+
+    private bool IsInAccessRules(Guid attrId) => _accessRules.Any(r => r.AttributeDefinitionId == attrId);
+
+    // Access rules stay in the edited entity and are written with the position, so the whole
+    // form is saved as one graph in a single call.
+    private void AddAccessRule()
+    {
+        if (SelectedRuleAttribute is null || !CanAddAccessRule)
+            return;
+
+        _accessRules.Add(new PositionAccessRule
+        {
+            AttributeDefinition = SelectedRuleAttribute,
+            AttributeDefinitionId = SelectedRuleAttribute.Id,
+            Operator = _selectedRuleOperator,
+            FilterValue = _selectedRuleValue.Trim()
+        });
+        _selectedRuleAttrId = "";
+        _selectedRuleValue = "";
+    }
+
+    private void RemoveSelectedAccessRule()
+    {
+        _accessRules.RemoveAll(r => r.AttributeDefinitionId == Guid.Parse(_ruleToRemoveAttrId));
+        _ruleToRemoveAttrId = "";
     }
 
     private void OnTagsChanged(List<string> tags) => _tags = tags;
 
+    private async Task Reload()
+    {
+        if (_position is null)
+            return;
+
+        await LoadAsync(_position.Id);
+    }
+
     private async Task Save()
     {
-        if (_position is null) return;
+        if (_position is null)
+            return;
 
         var userId = await CurrentUserService.GetUserIdAsync();
-        if (userId is null) return;
+        if (userId is null)
+            return;
 
-        Position saved;
-        if (_isNew)
-            saved = await PositionService.CreateAsync(_position, userId.Value);
-        else
-            saved = await PositionService.UpdateAsync(_position.Id, _position);
+        _position.AccessRules = _accessRules;
+        _position.AttributeRules = _attributeRules;
 
-        // Sync tags
-        var currentTags = _position.Tags.Select(t => t.Tag).ToHashSet();
-        foreach (var tag in currentTags.Except(_tags))
-            await PositionService.RemoveTagAsync(saved.Id, tag);
-        foreach (var tag in _tags)
-            await PositionService.AddTagAsync(saved.Id, tag);
+        try
+        {
+            if (_isNew)
+                _position = await PositionService.CreateAsync(_position, userId.Value);
+            else
+                _position = await PositionService.UpdateAsync(_position.Id, _position, _position.RowVersion);
+
+            // One diff + one save for the whole tag set.
+            await PositionService.SetTagsAsync(_position.Id, _tags);
+        }
+        catch (ConcurrencyConflictException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
 
         Navigation.NavigateTo("/positions");
     }

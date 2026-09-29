@@ -11,11 +11,11 @@
 
 @if (_loading)
 {
-    <p>Loading...</p>
+    <p>@Loc["Auth.Loading"]</p>
 }
 else if (_profile is null && _displayName is null)
 {
-    <p class="text-muted">User not found.</p>
+    <p class="text-muted">@Loc["Auth.UserNotFound"]</p>
 }
 else
 {
@@ -28,11 +28,11 @@ else
             }
             else
             {
-                <p class="text-muted">Registered user</p>
+                <p class="text-muted">@Loc["Auth.RegisteredUser"]</p>
             }
             @if (_userId == _viewerId)
             {
-                <a href="/profile" class="btn btn-outline-primary btn-sm">Go to my profile</a>
+                <a href="/profile" class="btn btn-outline-primary btn-sm">@Loc["Auth.GoToMyProfile"]</a>
             }
         </div>
     </div>
@@ -40,7 +40,7 @@ else
     @if (_profile?.AttributeValues.Any() == true)
     {
         <div class="card">
-            <div class="card-header"><h5 class="mb-0">Details</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Auth.Details"]</h5></div>
             <div class="card-body">
                 <dl class="row mb-0">
                     @foreach (var v in _profile.AttributeValues)
@@ -53,7 +53,7 @@ else
         </div>
     }
 
-    <a href="/" class="btn btn-link ps-0 mt-3">Back to home</a>
+    <a href="/" class="btn btn-link ps-0 mt-3">@Loc["Common.BackHome"]</a>
 }
 
 @code {

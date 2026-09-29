@@ -5,56 +5,105 @@
 @inject IPositionService PositionService
 @inject ICurrentUserService CurrentUserService
 @inject IProfileService ProfileService
+@inject IJSRuntime Js
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<h3>Positions</h3>
+<h3>@Loc["Position.ListTitle"]</h3>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div></div>
-    @if (_isRecruiter)
-    {
-        <a href="/positions/edit" class="btn btn-primary btn-sm">Create Position</a>
-    }
-</div>
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
 
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Company</th>
-            <th>Status</th>
-            <th>CVs</th>
-            <th>Created</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var pos in _positions)
-        {
+@* Spec §2: the recurring row actions are replaced by one toolbar acting on the selection. *@
+@if (_isRecruiter)
+{
+    <div class="table-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="text-muted small">@Loc["List.Selected", _selectedIds.Count]</span>
+
+        <div class="ms-auto d-flex gap-2">
+            <a href="/positions/edit" class="btn btn-primary btn-sm">@Loc["Position.Create"]</a>
+            <button class="btn btn-outline-primary btn-sm" disabled="@(_selectedIds.Count != 1)"
+                    @onclick="EditSelected">@Loc["Common.Edit"]</button>
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(_selectedIds.Count != 1)"
+                    @onclick="DuplicateSelected">@Loc["Position.Duplicate"]</button>
+            <button class="btn btn-outline-danger btn-sm" disabled="@(_selectedIds.Count == 0)"
+                    @onclick="DeleteSelected">@Loc["Common.Delete"]</button>
+        </div>
+    </div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
             <tr>
-                <td><a href="/positions/@pos.Id">@pos.Title</a></td>
-                <td>@pos.Company</td>
-                <td><span class="badge @(pos.IsOpen ? "bg-success" : "bg-secondary")">@(pos.IsOpen ? "Open" : "Closed")</span></td>
-                <td>@pos.CvRecords.Count</td>
-                <td>@pos.CreatedAt.ToString("MMM dd, yyyy")</td>
+                @if (_isRecruiter)
+                {
+                    <th style="width: 2.5rem;">
+                        <input type="checkbox" class="form-check-input" aria-label="@Loc["List.SelectAll"]"
+                               checked="@_allSelected" @onchange="ToggleSelectAll" />
+                    </th>
+                }
+                <th>@Loc["Common.Title"]</th>
+                <th>@Loc["Common.Company"]</th>
+                <th>@Loc["Common.Status"]</th>
+                <th>@Loc["Home.CvColumn"]</th>
+                <th>@Loc["Common.Created"]</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var pos in _positions)
+            {
+                var selected = _selectedIds.Contains(pos.Id);
+                <tr class="@(selected ? "is-selected" : null)">
+                    @if (_isRecruiter)
+                    {
+                        <td>
+                            <input type="checkbox" class="form-check-input" aria-label="@pos.Title"
+                                   checked="@selected" @onchange="() => ToggleSelection(pos.Id)" />
+                        </td>
+                    }
+                    <td><a href="/positions/@pos.Id">@pos.Title</a></td>
+                    <td>@pos.Company</td>
+                    <td>
+                        <span class="badge @(pos.IsOpen ? "bg-success" : "bg-secondary")">
+                            @(pos.IsOpen ? Loc["Common.Open"] : Loc["Common.Closed"])
+                        </span>
+                        @if (!pos.IsPublic)
+                        {
+                            <span class="badge bg-warning text-dark">@Loc["Home.Restricted"]</span>
+                        }
+                    </td>
+                    <td>@pos.CvRecords.Count</td>
+                    <td>@pos.CreatedAt.ToString("MMM dd, yyyy")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
 @if (!_positions.Any())
 {
-    <p class="text-muted">No positions found.</p>
+    <p class="text-muted">@Loc["Position.NoPositions"]</p>
 }
 
 @code {
-    private List<Position> _positions = new();
+    private List<Position> _positions = [];
+    private HashSet<Guid> _selectedIds = [];
     private bool _isRecruiter;
     private bool _isCandidate;
+    private string? _error;
+
+    private bool _allSelected =>
+        _positions.Any() && _positions.All(p => _selectedIds.Contains(p.Id));
 
     protected override async Task OnInitializedAsync()
     {
-        _isRecruiter = await CurrentUserService.IsInRoleAsync("Recruiter") || await CurrentUserService.IsInRoleAsync("Administrator");
-        _isCandidate = await CurrentUserService.IsInRoleAsync("Candidate");
+        _isRecruiter = await CurrentUserService.IsInRoleAsync(RoleNames.Recruiter)
+            || await CurrentUserService.IsInRoleAsync(RoleNames.Administrator);
+        _isCandidate = await CurrentUserService.IsInRoleAsync(RoleNames.Candidate);
+
         if (_isRecruiter)
         {
             _positions = await PositionService.GetAllAsync();
@@ -72,5 +121,57 @@
         {
             _positions = await PositionService.GetAllAsync(publicOnly: true);
         }
+    }
+
+    private void ToggleSelection(Guid id)
+    {
+        if (!_selectedIds.Remove(id))
+            _selectedIds.Add(id);
+
+        _error = null;
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (e.Value is true)
+            _selectedIds.UnionWith(_positions.Select(p => p.Id));
+        else
+            _selectedIds.Clear();
+    }
+
+    private void EditSelected() =>
+        Navigation.NavigateTo($"/positions/edit/{_selectedIds.Single()}");
+
+    private async Task DuplicateSelected()
+    {
+        _error = null;
+
+        var userId = await CurrentUserService.GetUserIdAsync();
+        if (userId is null)
+            return;
+
+        try
+        {
+            var copy = await PositionService.DuplicateAsync(_selectedIds.Single(), userId.Value);
+            Navigation.NavigateTo($"/positions/edit/{copy.Id}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task DeleteSelected()
+    {
+        _error = null;
+
+        var confirmed = await Js.InvokeAsync<bool>("confirm", Loc["List.ConfirmDeletePosition"].Value);
+        if (!confirmed)
+            return;
+
+        await PositionService.DeleteManyAsync(_selectedIds.ToList());
+
+        _positions.RemoveAll(p => _selectedIds.Contains(p.Id));
+        _selectedIds.Clear();
     }
 }

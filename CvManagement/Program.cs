@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using AspNet.Security.OAuth.GitHub;
 using CvManagement.Components;
@@ -6,8 +7,19 @@ using CvManagement.Data.Seed;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CvManagement.Data.Entities.Identity;
+
+// In-memory check for the access-rule evaluator, so the logic is verifiable without a database.
+//   dotnet run --project CvManagement -- --selfcheck
+if (args.Contains("--selfcheck"))
+{
+    await CvManagement.SelfCheck.RunAsync();
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +46,8 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     options.Password.RequireLowercase = true;
     options.SignIn.RequireConfirmedAccount = false;
     options.User.RequireUniqueEmail = true;
+    // Administrators block an account by setting a far-future lockout end (spec §3.7).
+    options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
@@ -65,9 +79,10 @@ if (!string.IsNullOrWhiteSpace(gitHubId))
 }
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("RecruiterOnly", p => p.RequireRole("Recruiter", "Administrator"))
-    .AddPolicy("AdminOnly", p => p.RequireRole("Administrator"))
-    .AddPolicy("CandidateOnly", p => p.RequireRole("Candidate"));
+    .AddPolicy(AuthorizationPolicies.RecruiterOnly,
+        p => p.RequireRole(RoleNames.Recruiter, RoleNames.Administrator))
+    .AddPolicy(AuthorizationPolicies.AdminOnly, p => p.RequireRole(RoleNames.Administrator))
+    .AddPolicy(AuthorizationPolicies.CandidateOnly, p => p.RequireRole(RoleNames.Candidate));
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
@@ -82,8 +97,23 @@ builder.Services.AddScoped<CvManagement.Services.Cv.ICvService, CvManagement.Ser
 builder.Services.AddScoped<CvManagement.Services.Likes.ILikeService, CvManagement.Services.Likes.LikeService>();
 builder.Services.AddScoped<CvManagement.Services.Search.ISearchService, CvManagement.Services.Search.SearchService>();
 builder.Services.AddScoped<CvManagement.Services.Discussions.IDiscussionService, CvManagement.Services.Discussions.DiscussionService>();
+builder.Services.AddScoped<CvManagement.Services.Admin.IAdminUserService, CvManagement.Services.Admin.AdminUserService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// The culture is set per request from a cookie, which the /culture/set endpoint writes.
+// Logging in does not change it: a visitor picks a language, and it sticks.
+const string CultureCookieName = ".CvManagement.Culture";
+var supportedCultures = CvManagement.SupportedLanguages.All.Select(l => new CultureInfo(l.Code)).ToList();
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(supportedCultures[0]);
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+    options.RequestCultureProviders = [new CookieRequestCultureProvider()];
+    options.ApplyCurrentCultureToResponseHeaders = true;
+});
 
 builder.Services.AddSignalR();
 
@@ -101,15 +131,62 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseRequestLocalization();
 app.UseAntiforgery();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ponytail: the culture cookie is the single source of truth for language, for signed-in
+// and anonymous visitors alike. ApplicationUser.PreferredLanguage records the same choice so
+// it survives a cookie clear, but is not read on the request path: doing so would cost a
+// user lookup per request just to render text.
+app.MapPost("/culture/set", async (
+    HttpContext context,
+    IAntiforgery antiforgery,
+    [FromForm] string culture,
+    [FromForm] string? redirectUri) =>
+{
+    // Validated explicitly: this endpoint flips a cookie, so a cross-site POST must not
+    // be able to trigger it.
+    await antiforgery.ValidateRequestAsync(context);
+
+    var code = CvManagement.SupportedLanguages.Normalize(culture);
+    context.Response.Cookies.Append(CultureCookieName, code, new CookieOptions
+    {
+        Path = "/",
+        HttpOnly = true,
+        IsEssential = true,
+        SameSite = SameSiteMode.Lax,
+        Expires = DateTimeOffset.UtcNow.AddYears(1)
+    });
+
+    // Mirror onto the account so the preference is not lost with the cookie.
+    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (userId is not null && Guid.TryParse(userId, out var id))
+    {
+        await using var scope = context.RequestServices.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is not null && user.PreferredLanguage != code)
+        {
+            user.PreferredLanguage = code;
+            await users.UpdateAsync(user);
+        }
+    }
+
+    // Only ever bounce back inside this app; an absolute URL here is an open redirect.
+    var target = !string.IsNullOrEmpty(redirectUri) && redirectUri.StartsWith('/') && !redirectUri.StartsWith("//")
+        ? redirectUri
+        : "/";
+    return Results.LocalRedirect(target);
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapHub<CvManagement.Hubs.DiscussionHub>("/hubs/discussion");
+app.MapHub<CvManagement.Hubs.DiscussionHub>("/hubs/discussion")
+    .RequireAuthorization();
 
 var externalSchemas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
 {
@@ -143,6 +220,9 @@ app.MapGet("/external-callback", async (HttpContext ctx, UserManager<Application
             return Results.Redirect("/");
 
         var current = await userManager.GetUserAsync(ctx.User);
+        if (current is null)
+            return Results.Redirect("/login?error=external-failed");
+
         var link = await userManager.AddLoginAsync(current, info);
         return Results.Redirect(link.Succeeded ? "/" : "/login?error=link-failed");
     }
@@ -169,7 +249,7 @@ app.MapGet("/external-callback", async (HttpContext ctx, UserManager<Application
         if (!created.Succeeded)
             return Results.Redirect("/login?error=account-failed");
 
-        var roleResult = await userManager.AddToRoleAsync(user, "Candidate");
+        var roleResult = await userManager.AddToRoleAsync(user, RoleNames.Candidate);
         if (!roleResult.Succeeded)
             return Results.Redirect("/login?error=role-failed");
     }
@@ -187,6 +267,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CvDbContext>();
     await db.Database.MigrateAsync();
     await IdentitySeed.SeedAsync(scope.ServiceProvider);
+    await AttributeSeed.SeedBuiltInAttributesAsync(scope.ServiceProvider);
 }
 
 app.Run();

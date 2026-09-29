@@ -12,6 +12,7 @@ public class ProfileAttributeValueConfiguration : IEntityTypeConfiguration<Profi
         b.HasIndex(e => new { e.CandidateProfileId, e.AttributeDefinitionId }).IsUnique();
         b.Property(e => e.StringValue).HasMaxLength(512);
         b.Property(e => e.ImageUrl).HasMaxLength(512);
+        b.HasIndex(e => e.SearchVector).HasMethod("gin");
 
         b.HasOne(e => e.CandidateProfile)
             .WithMany(p => p.AttributeValues)

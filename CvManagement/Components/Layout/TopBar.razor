@@ -4,7 +4,13 @@
 
 <nav class="topbar navbar navbar-expand-lg sticky-top px-3 py-2">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="/">CV Manager</a>
+        <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#main-sidebar" aria-controls="main-sidebar"
+                aria-label="@Loc["Nav.ToggleNavigation"]">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <a class="navbar-brand fw-bold" href="/">@Loc["TopBar.Brand"]</a>
 
         <div class="d-none d-md-flex flex-grow-1 mx-4" style="max-width: 400px;">
             <SearchBar />
@@ -17,16 +23,17 @@
             @if (CurrentUser.IsAuthenticated)
             {
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                            aria-label="@Loc["TopBar.UserMenu"]">
                         @(_displayName ?? "User")
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/profile">My Profile</a></li>
-                        <li><a class="dropdown-item" href="/cvs">My CVs</a></li>
+                        <li><a class="dropdown-item" href="/profile">@Loc["Nav.MyProfile"]</a></li>
+                        <li><a class="dropdown-item" href="/cvs">@Loc["Nav.MyCvs"]</a></li>
                         <li><hr class="dropdown-divider" /></li>
                         <li>
                             <form method="post" action="/logout">
-                                <button type="submit" class="dropdown-item">Sign Out</button>
+                                <button type="submit" class="dropdown-item">@Loc["TopBar.SignOut"]</button>
                             </form>
                         </li>
                     </ul>
@@ -34,9 +41,15 @@
             }
             else
             {
-                <a href="/login" class="btn btn-sm btn-primary">Sign In</a>
+                <a href="/login" class="btn btn-sm btn-primary">@Loc["TopBar.SignIn"]</a>
             }
         </div>
+    </div>
+
+    @* On phones the search box gets its own row rather than being dropped: it is the fastest
+       way into the app and the previous layout left a phone user with no way to search. *@
+    <div class="d-md-none mt-2">
+        <SearchBar />
     </div>
 </nav>
 

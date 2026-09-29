@@ -1,96 +1,152 @@
 @page "/attributes"
 @using CvManagement.Services.Attributes
 @using CvManagement.Data.Entities.Attributes
-@attribute [Authorize(Policy = "RecruiterOnly")]
+@attribute [Authorize(Policy = AuthorizationPolicies.RecruiterOnly)]
 @inject IAttributeService AttributeService
+@inject IJSRuntime Js
 @rendermode InteractiveServer
 
-<h3>Attribute Library</h3>
+<h3>@Loc["Attribute.LibraryTitle"]</h3>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div class="d-flex gap-2">
-        <input type="text" class="form-control form-control-sm" placeholder="Search attributes..." @bind="_searchPrefix" @bind:event="oninput" @onkeydown="HandleSearchKey" />
-        <select class="form-select form-select-sm" style="width: auto;" @onchange="OnCategoryChanged">
-            <option value="">All Categories</option>
-            @foreach (var cat in Enum.GetValues<AttributeCategory>())
-            {
-                <option value="@cat">@cat</option>
-            }
-        </select>
+@if (_error is not null)
+{
+    <div class="alert alert-warning">@_error</div>
+}
+
+@* Spec §2: actions live in a toolbar and act on the selection — never repeated per row. *@
+<div class="table-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input type="text" class="form-control form-control-sm" style="max-width: 16rem;"
+           placeholder="@Loc["Attribute.SearchPlaceholder"]"
+           @bind="_searchPrefix" @bind:event="oninput" />
+
+    <select class="form-select form-select-sm w-auto" @bind="_selectedCategory">
+        <option value="">@Loc["Position.AllCategories"]</option>
+        @foreach (var cat in Enum.GetValues<AttributeCategory>())
+        {
+            <option value="@cat">@cat</option>
+        }
+    </select>
+
+    <span class="text-muted small">@Loc["List.Selected", _selectedIds.Count]</span>
+
+    <div class="ms-auto d-flex gap-2">
+        <a href="/attributes/edit" class="btn btn-primary btn-sm">@Loc["Attribute.Create"]</a>
+        <button class="btn btn-outline-primary btn-sm" disabled="@(_selectedIds.Count != 1)"
+                @onclick="EditSelected">@Loc["Common.Edit"]</button>
+        <button class="btn btn-outline-danger btn-sm" disabled="@(_selectedIds.Count == 0)"
+                @onclick="DeleteSelected">@Loc["Common.Delete"]</button>
     </div>
-    <a href="/attributes/edit" class="btn btn-primary btn-sm">Create Attribute</a>
 </div>
 
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Data Type</th>
-            <th>Required</th>
-            <th style="width: 120px;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var attr in _filteredAttributes)
-        {
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
             <tr>
-                <td>@attr.Name</td>
-                <td>@attr.Category</td>
-                <td>@attr.DataType</td>
-                <td>@(attr.IsRequired ? "Yes" : "No")</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <a href="/attributes/edit/@attr.Id" class="btn btn-outline-primary">Edit</a>
-                        <button class="btn btn-outline-danger" @onclick="() => DeleteAttribute(attr)">Delete</button>
-                    </div>
-                </td>
+                <th style="width: 2.5rem;">
+                    <input type="checkbox" class="form-check-input" aria-label="@Loc["List.SelectAll"]"
+                           checked="@_allVisibleSelected" @onchange="ToggleSelectAll" />
+                </th>
+                <th>@Loc["Common.Name"]</th>
+                <th>@Loc["Common.Category"]</th>
+                <th>@Loc["Common.DataType"]</th>
+                <th>@Loc["Common.Required"]</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var attr in FilteredAttributes)
+            {
+                var selected = _selectedIds.Contains(attr.Id);
+                <tr class="@(selected ? "is-selected" : null)">
+                    <td>
+                        <input type="checkbox" class="form-check-input"
+                               aria-label="@attr.Name"
+                               checked="@selected" @onchange="() => ToggleSelection(attr.Id)" />
+                    </td>
+                    <td>
+                        @attr.Name
+                        @if (attr.IsBuiltIn)
+                        {
+                            <span class="badge text-bg-light ms-1">@Loc["Attribute.BuiltIn"]</span>
+                        }
+                    </td>
+                    <td>@attr.Category</td>
+                    <td>@attr.DataType</td>
+                    <td>@(attr.IsRequired ? Loc["Common.Yes"] : Loc["Common.No"])</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
-@if (!_filteredAttributes.Any())
+@if (!FilteredAttributes.Any())
 {
-    <p class="text-muted">No attributes found.</p>
+    <p class="text-muted">@Loc["Attribute.NoAttributes"]</p>
 }
 
 @code {
-    private List<AttributeDefinition> _allAttributes = new();
-    private List<AttributeDefinition> _filteredAttributes = new();
+    private List<AttributeDefinition> _allAttributes = [];
+    private HashSet<Guid> _selectedIds = [];
     private string _searchPrefix = "";
     private string _selectedCategory = "";
+    private string? _error;
+
+    private IEnumerable<AttributeDefinition> FilteredAttributes =>
+        _allAttributes
+            .Where(a => string.IsNullOrEmpty(_searchPrefix)
+                        || a.Name.Contains(_searchPrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(a => string.IsNullOrEmpty(_selectedCategory) || a.Category.ToString() == _selectedCategory);
+
+    private bool _allVisibleSelected =>
+        FilteredAttributes.Any() && FilteredAttributes.All(a => _selectedIds.Contains(a.Id));
 
     protected override async Task OnInitializedAsync()
     {
         _allAttributes = await AttributeService.GetAllAsync();
-        _filteredAttributes = _allAttributes;
     }
 
-    private void Search()
+    private void ToggleSelection(Guid id)
     {
-        _filteredAttributes = _allAttributes
-            .Where(a => string.IsNullOrEmpty(_searchPrefix) || a.Name.Contains(_searchPrefix, StringComparison.OrdinalIgnoreCase))
-            .Where(a => string.IsNullOrEmpty(_selectedCategory) || a.Category.ToString() == _selectedCategory)
-            .ToList();
+        if (!_selectedIds.Remove(id))
+            _selectedIds.Add(id);
+
+        _error = null;
     }
 
-    private void HandleSearchKey(KeyboardEventArgs e)
+    private void ToggleSelectAll(ChangeEventArgs e)
     {
-        if (e.Key == "Enter")
-            Search();
+        if (e.Value is true)
+            _selectedIds.UnionWith(FilteredAttributes.Select(a => a.Id));
+        else
+            _selectedIds.Clear();
     }
 
-    private void OnCategoryChanged(ChangeEventArgs e)
+    private void EditSelected()
     {
-        _selectedCategory = e.Value?.ToString() ?? "";
-        Search();
+        var id = _selectedIds.Single();
+        Navigation.NavigateTo($"/attributes/edit/{id}");
     }
 
-    private async Task DeleteAttribute(AttributeDefinition attr)
+    private async Task DeleteSelected()
     {
-        await AttributeService.DeleteAsync(attr.Id);
-        _allAttributes.Remove(attr);
-        Search();
+        _error = null;
+
+        var confirmed = await Js.InvokeAsync<bool>(
+            "confirm", Loc["List.ConfirmDelete"].Value);
+        if (!confirmed)
+            return;
+
+        try
+        {
+            await AttributeService.DeleteManyAsync(_selectedIds.ToList());
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+
+        _allAttributes.RemoveAll(a => _selectedIds.Contains(a.Id));
+        _selectedIds.Clear();
     }
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CvManagement.Data.Entities.Attributes;
 using CvManagement.Data.Entities.Positions;
 using CvManagement.Data.Entities.Profiles;
@@ -6,14 +7,52 @@ namespace CvManagement.Services.Positions;
 
 public static class AccessRuleEvaluator
 {
+    private static readonly string[] TextualOperators =
+    [
+        nameof(PositionAccessOperator.Equals),
+        nameof(PositionAccessOperator.NotEquals),
+        nameof(PositionAccessOperator.Contains)
+    ];
+
+    private static readonly string[] NumericOperators =
+    [
+        nameof(PositionAccessOperator.GreaterThan),
+        nameof(PositionAccessOperator.LessThan),
+        nameof(PositionAccessOperator.Equals),
+        nameof(PositionAccessOperator.NotEquals)
+    ];
+
+    private static readonly string[] BooleanOperators =
+    [
+        nameof(PositionAccessOperator.Equals),
+        nameof(PositionAccessOperator.NotEquals)
+    ];
+
+    // Operators offered per attribute data type in the access-rule editor (spec §7.2).
+    public static IReadOnlyList<PositionAccessOperator> GetOperatorsFor(AttributeDataType dataType) =>
+        dataType switch
+        {
+            AttributeDataType.Numeric or AttributeDataType.Date => ToOperators(NumericOperators),
+            AttributeDataType.Boolean => ToOperators(BooleanOperators),
+            AttributeDataType.String or AttributeDataType.Text or AttributeDataType.OneOfMany
+                => ToOperators(TextualOperators),
+            _ => []
+        };
+
+    private static List<PositionAccessOperator> ToOperators(string[] names) =>
+        names.Select(Enum.Parse<PositionAccessOperator>).ToList();
+
+
+    // Every rule must pass. A missing value fails its rule rather than being skipped, so an
+    // unfilled attribute cannot grant access.
     public static bool CanAccess(ICollection<PositionAccessRule> rules, List<ProfileAttributeValue> values) =>
-        rules.Count == 0
-        || rules.All(r => IsSatisfied(r, values.FirstOrDefault(v => v.AttributeDefinitionId == r.AttributeDefinitionId)));
+        rules.All(r => IsSatisfied(r, values.FirstOrDefault(v => v.AttributeDefinitionId == r.AttributeDefinitionId)));
 
     public static bool IsSatisfied(PositionAccessRule rule, ProfileAttributeValue? value)
     {
-        if (value is null) return false;
-        return rule.AttributeDefinition?.DataType switch
+        if (value is null || rule.AttributeDefinition is null) return false;
+
+        return rule.AttributeDefinition.DataType switch
         {
             AttributeDataType.Numeric => CompareDecimal(value.NumericValue, rule),
             AttributeDataType.Date => CompareDate(value.DateValue, rule),
@@ -31,9 +70,11 @@ public static class AccessRuleEvaluator
             _ => null
         };
 
+    // FilterValue is free text entered by a recruiter, so parse with InvariantCulture:
+    // "5,5" must not parse on a de-DE machine and fail on en-US.
     private static bool CompareDecimal(decimal? v, PositionAccessRule rule)
     {
-        if (!v.HasValue || !decimal.TryParse(rule.FilterValue, out var expected)) return false;
+        if (!v.HasValue || !decimal.TryParse(rule.FilterValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var expected)) return false;
         return rule.Operator switch
         {
             PositionAccessOperator.GreaterThan => v > expected,
@@ -46,7 +87,7 @@ public static class AccessRuleEvaluator
 
     private static bool CompareDate(DateTime? v, PositionAccessRule rule)
     {
-        if (!v.HasValue || !DateTime.TryParse(rule.FilterValue, out var expected)) return false;
+        if (!v.HasValue || !DateTime.TryParse(rule.FilterValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var expected)) return false;
         return rule.Operator switch
         {
             PositionAccessOperator.GreaterThan => v > expected,
@@ -59,8 +100,9 @@ public static class AccessRuleEvaluator
 
     private static bool CompareBool(bool? v, PositionAccessRule rule)
     {
-        if (!v.HasValue) return false;
-        var expected = bool.TryParse(rule.FilterValue, out var b) && b;
+        // An unparseable filter must not silently degrade to "expected == false",
+        // which would make a NotEquals rule pass for every candidate.
+        if (!v.HasValue || !bool.TryParse(rule.FilterValue, out var expected)) return false;
         return rule.Operator switch
         {
             PositionAccessOperator.Equals => v == expected,

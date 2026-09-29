@@ -1,29 +1,35 @@
 using CvManagement.Data;
 using CvManagement.Data.Entities.Attributes;
+using CvManagement.Services.Concurrency;
 using Microsoft.EntityFrameworkCore;
 
 namespace CvManagement.Services.Attributes;
 
 public class AttributeService : IAttributeService
 {
+    private const string EntityName = "This attribute";
+    private const string BuiltInProtectedMessage = "Built-in profile attributes cannot be removed or retyped.";
+
     private readonly CvDbContext _db;
 
     public AttributeService(CvDbContext db) => _db = db;
 
-    public async Task<List<AttributeDefinition>> GetAllAsync() =>
-        await _db.AttributeDefinitions
+    public Task<List<AttributeDefinition>> GetAllAsync() =>
+        _db.AttributeDefinitions
+            .AsNoTracking()
             .OrderBy(a => a.SortOrder)
             .ThenBy(a => a.Name)
             .ToListAsync();
 
-    public async Task<AttributeDefinition?> GetByIdAsync(Guid id) =>
-        await _db.AttributeDefinitions
+    public Task<AttributeDefinition?> GetByIdAsync(Guid id) =>
+        _db.AttributeDefinitions
+            .AsNoTracking()
             .Include(a => a.Options)
             .FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<AttributeDefinition> CreateAsync(AttributeDefinition attribute)
     {
-        attribute.Slug = attribute.Name.ToLowerInvariant().Replace(" ", "-");
+        attribute.Slug = ToSlug(attribute.Name);
         if (await _db.AttributeDefinitions.AnyAsync(a => a.Name == attribute.Name || a.Slug == attribute.Slug))
             throw new InvalidOperationException("An attribute with this name already exists.");
 
@@ -34,12 +40,24 @@ public class AttributeService : IAttributeService
         return attribute;
     }
 
-    public async Task<AttributeDefinition> UpdateAsync(Guid id, AttributeDefinition attribute)
+    // Optimistic locking (spec §4): the caller sends the version it read and the write is
+    // rejected if another recruiter changed the definition in the meantime.
+    public async Task<AttributeDefinition> UpdateAsync(Guid id, AttributeDefinition attribute, byte[] expectedVersion)
     {
-        var existing = await _db.AttributeDefinitions.FindAsync(id)
+        var existing = await _db.AttributeDefinitions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id)
             ?? throw new InvalidOperationException("Attribute not found");
 
-        var slug = attribute.Name.ToLowerInvariant().Replace(" ", "-");
+        if (!existing.RowVersion.AsSpan().SequenceEqual(expectedVersion))
+            throw new ConcurrencyConflictException(EntityName);
+
+        // Spec §5.1: a built-in "Me" attribute is protected. Its label and value stay
+        // editable, but its data type cannot be changed out from under existing values.
+        if (existing.IsBuiltIn && existing.DataType != attribute.DataType)
+            throw new InvalidOperationException(BuiltInProtectedMessage);
+
+        var slug = ToSlug(attribute.Name);
         if (await _db.AttributeDefinitions.AnyAsync(a => a.Id != id && (a.Name == attribute.Name || a.Slug == slug)))
             throw new InvalidOperationException("An attribute with this name already exists.");
 
@@ -50,31 +68,61 @@ public class AttributeService : IAttributeService
         existing.Description = attribute.Description;
         existing.IsRequired = attribute.IsRequired;
         existing.SortOrder = attribute.SortOrder;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConcurrencyConflictException(EntityName);
+        }
+
         return existing;
     }
 
+    // Spec §5.1: built-in "Me" attributes can never be removed by a Recruiter.
     public async Task DeleteAsync(Guid id)
     {
         var attribute = await _db.AttributeDefinitions.FindAsync(id)
             ?? throw new InvalidOperationException("Attribute not found");
+
+        if (attribute.IsBuiltIn)
+            throw new InvalidOperationException(BuiltInProtectedMessage);
+
         _db.AttributeDefinitions.Remove(attribute);
+        await _db.SaveChangesAsync();
+    }
+
+    // One load and one save for a whole multi-row toolbar delete, instead of a round-trip
+    // per selected attribute.
+    public async Task DeleteManyAsync(IReadOnlyCollection<Guid> ids)
+    {
+        if (ids.Count == 0)
+            return;
+
+        var attributes = await _db.AttributeDefinitions
+            .Where(a => ids.Contains(a.Id))
+            .ToListAsync();
+
+        if (attributes.Any(a => a.IsBuiltIn))
+            throw new InvalidOperationException(BuiltInProtectedMessage);
+
+        _db.AttributeDefinitions.RemoveRange(attributes);
         await _db.SaveChangesAsync();
     }
 
     public async Task<List<AttributeDefinition>> GetRecentlyUsedAsync(int count)
     {
-        var ids = await _db.PositionAttributeRules
+        // Most recently attached to a position, deduplicated, in that order.
+        return await _db.PositionAttributeRules
+            .AsNoTracking()
             .OrderByDescending(r => r.Position!.CreatedAt)
-            .Select(r => r.AttributeDefinitionId)
+            .Select(r => r.AttributeDefinition)
             .Distinct()
             .Take(count)
             .ToListAsync();
-        var attributes = await _db.AttributeDefinitions
-            .Where(a => ids.Contains(a.Id))
-            .ToListAsync();
-        return attributes.OrderBy(a => ids.IndexOf(a.Id)).ToList();
     }
 
     public async Task<List<AttributeOption>> GetOptionsAsync(Guid attributeId) =>
@@ -105,4 +153,6 @@ public class AttributeService : IAttributeService
             await _db.SaveChangesAsync();
         }
     }
+
+    private static string ToSlug(string name) => AttributeSlug.FromName(name);
 }

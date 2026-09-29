@@ -3,6 +3,7 @@
 @using CvManagement.Services.Auth
 @using CvManagement.Services.Profiles
 @using CvManagement.Services.Positions
+@attribute [Authorize]
 @inject ICvService CvService
 @inject ICurrentUserService CurrentUserService
 @inject IProfileService ProfileService
@@ -10,42 +11,42 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<h3>Create CV</h3>
+<h3>@Loc["Cv.CreateTitle"]</h3>
 
 @if (_position is not null)
 {
     <div class="card mb-4">
         <div class="card-body">
-            <p>Creating CV for position: <strong>@_position.Title</strong></p>
+            <p>@Loc["Cv.CreatingForPosition"] <strong>@_position.Title</strong></p>
 
             @if (!_canAccess)
             {
                 <div class="alert alert-warning">
-                    Your profile does not match this position's access rules, so you cannot create a CV for it.
-                    <a href="/positions">Browse positions</a>.
+                    @Loc["Cv.NoAccess"]
+                    <a href="/positions">@Loc["Cv.BrowsePositions"]</a>.
                 </div>
             }
             else if (_existingCv is not null)
             {
                 <div class="alert alert-warning">
-                    You already have a CV for this position.
-                    <a href="/cvs/@_existingCv.Id">View it here</a>.
+                    @Loc["Cv.AlreadyExists"]
+                    <a href="/cvs/@_existingCv.Id">@Loc["Cv.ViewItHere"]</a>.
                 </div>
             }
             else
             {
                 <div class="mb-3">
-                    <label class="form-label">CV Title</label>
+                    <label class="form-label">@Loc["Cv.CvTitle"]</label>
                     <input type="text" class="form-control" @bind="_title" />
                 </div>
-                <button class="btn btn-primary" @onclick="CreateCv" disabled="@(string.IsNullOrWhiteSpace(_title))">Create CV</button>
+                <button class="btn btn-primary" @onclick="CreateCv" disabled="@(string.IsNullOrWhiteSpace(_title))">@Loc["Cv.CreateTitle"]</button>
             }
         </div>
     </div>
 }
 else
 {
-    <p>Loading...</p>
+    <p>@Loc["Common.Loading"]</p>
 }
 
 @code {
@@ -82,7 +83,7 @@ else
         if (userId is null || !_canAccess) return;
 
         var profile = await ProfileService.GetOrCreateProfileAsync(userId.Value);
-        var cv = await CvService.CreateAsync(profile.Id, Guid.Parse(PositionId), _title, userId.Value);
+        var cv = await CvService.CreateAsync(profile.Id, Guid.Parse(PositionId), _title);
         Navigation.NavigateTo($"/cvs/{cv.Id}");
     }
 }

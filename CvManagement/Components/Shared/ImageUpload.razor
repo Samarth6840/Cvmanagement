@@ -1,0 +1,111 @@
+@implements IAsyncDisposable
+@using Microsoft.Extensions.Configuration
+@inject IJSRuntime Js
+@inject IConfiguration Configuration
+
+@* Drag-and-drop upload of an image straight to external cloud storage (spec §13a.4).
+   The browser sends the file to Cloudinary and only the resulting URL is bound back to
+   the model, so neither this server nor the database ever sees the image bytes. *@
+
+<div class="image-upload">
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <div class="d-flex align-items-start gap-2 mb-2">
+            <img src="@Value" class="img-thumbnail" style="max-height: 120px;" alt="" />
+            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearAsync">
+                @Loc["ImageUploader.RemoveImage"]
+            </button>
+        </div>
+    }
+
+    @if (_configured)
+    {
+        <div id="@_hostId" class="image-drop-zone" role="button" tabindex="0">
+            <input type="file" accept="image/*" hidden />
+            <span class="image-drop-hint">@Loc["ImageUploader.Choose"]</span>
+            <span class="image-drop-hint-uploading">@Loc["ImageUploader.Uploading"]</span>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning py-2 mb-0">@Loc["ImageUploader.NotConfigured"]</div>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="form-text text-danger">@_error</div>
+    }
+</div>
+
+@code {
+    private static int _nextHostId;
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private readonly string _hostId = $"image-upload-{Interlocked.Increment(ref _nextHostId)}";
+    private IJSObjectReference? _module;
+    private bool _configured;
+    private string? _error;
+
+    private bool _attached;
+
+    protected override void OnInitialized()
+    {
+        _configured = !string.IsNullOrWhiteSpace(CloudName) && !string.IsNullOrWhiteSpace(UploadPreset);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !_configured)
+            return;
+
+        var module = await GetModuleAsync();
+        _attached = await module.InvokeAsync<bool>(
+            "attach", _hostId, DotNetObjectReference.Create(this), CloudName, UploadPreset);
+    }
+
+    [JSInvokable]
+    public async Task OnUploaded(string url)
+    {
+        _error = null;
+        await ValueChanged.InvokeAsync(url);
+    }
+
+    [JSInvokable]
+    public Task OnUploadFailed(string reason)
+    {
+        _error = reason == "not-an-image"
+            ? Loc["ImageUploader.InvalidType"]
+            : Loc["ImageUploader.UploadFailed"];
+        return Task.CompletedTask;
+    }
+
+    private async Task ClearAsync()
+    {
+        _error = null;
+        await ValueChanged.InvokeAsync(null);
+    }
+
+    private string CloudName => Configuration["Cloudinary:CloudName"] ?? string.Empty;
+    private string UploadPreset => Configuration["Cloudinary:UploadPreset"] ?? string.Empty;
+
+    private async Task<IJSObjectReference> GetModuleAsync() =>
+        _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/image-upload.js");
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+                await _module.InvokeVoidAsync("detach", _hostId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        if (_module is not null)
+            await _module.DisposeAsync();
+    }
+}

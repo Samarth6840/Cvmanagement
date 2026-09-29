@@ -1,55 +1,118 @@
-@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime Js
 
-<label class="form-label">@Label</label>
-<div class="input-group">
-    <input type="text" class="form-control" placeholder="Add tags..."
-           @bind="_currentTag" @bind:event="oninput" @onkeydown="HandleKeyDown" />
-    <button class="btn btn-outline-secondary" type="button" @onclick="AddTag">Add</button>
+@* A ready-made tag input (Tagify) with autocomplete from the tags already entered
+   elsewhere in the system (spec §5.3 / §13a.1). The manual input below is the fallback
+   used when the Tagify script is unavailable; once Tagify takes over, it owns the widgets
+   inside an empty host element that Blazor never renders into. *@
+
+<div class="mb-3">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label">@Label</label>
+    }
+
+    @if (!_tagifyReady)
+    {
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="@Placeholder"
+                   @bind="_currentTag" @bind:event="oninput" @onkeydown="HandleKeyDown" />
+            <button class="btn btn-outline-secondary" type="button" @onclick="AddTag">@Loc["TagInput.Add"]</button>
+        </div>
+
+        @if (Tags.Count > 0)
+        {
+            <div class="d-flex flex-wrap gap-1 mt-2">
+                @foreach (var tag in Tags)
+                {
+                    <span class="badge bg-secondary d-flex align-items-center">
+                        @tag
+                        <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6em;"
+                                @onclick="() => RemoveTag(tag)"></button>
+                    </span>
+                }
+            </div>
+        }
+    }
+
+    <div id="@_hostId" class="tag-input-host"></div>
 </div>
 
-@if (Tags?.Any() == true)
-{
-    <div class="d-flex flex-wrap gap-1 mt-2">
-        @foreach (var tag in Tags)
-        {
-            <span class="badge bg-secondary d-flex align-items-center">
-                @tag
-                <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6em;"
-                        @onclick="() => RemoveTag(tag)"></button>
-            </span>
-        }
-    </div>
-}
-
 @code {
+    private static int _nextHostId;
+
     [Parameter] public string Label { get; set; } = "Tags";
-    [Parameter] public List<string> Tags { get; set; } = new();
+    [Parameter] public string Placeholder { get; set; } = "Add tags...";
+    [Parameter] public List<string> Tags { get; set; } = [];
+
+    /// <summary>Autocomplete source: every tag already entered elsewhere in the system.</summary>
+    [Parameter] public IReadOnlyCollection<string> Suggestions { get; set; } = [];
+
     [Parameter] public EventCallback<List<string>> TagsChanged { get; set; }
 
-    private string _currentTag = "";
+    private readonly string _hostId = $"tag-input-host-{Interlocked.Increment(ref _nextHostId)}";
+    private IJSObjectReference? _module;
+    private bool _tagifyReady;
+    private string _currentTag = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var module = await GetModuleAsync();
+        _tagifyReady = await module.InvokeAsync<bool>(
+            "init", _hostId, Tags, Suggestions, Placeholder, DotNetObjectReference.Create(this));
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnTagsChangedJs(string[] tags)
+    {
+        Tags.Clear();
+        Tags.AddRange(tags);
+        await TagsChanged.InvokeAsync(Tags);
+    }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" || e.Key == ",")
-        {
+        if (e.Key is "Enter" or ",")
             await AddTag();
-        }
     }
 
     private async Task AddTag()
     {
         var tag = _currentTag.Trim().Trim(',');
-        if (!string.IsNullOrEmpty(tag) && !Tags.Contains(tag))
-        {
-            Tags.Add(tag);
-            _currentTag = "";
-            await TagsChanged.InvokeAsync(Tags);
-        }
+        if (string.IsNullOrEmpty(tag) || Tags.Contains(tag))
+            return;
+
+        Tags.Add(tag);
+        _currentTag = string.Empty;
+        await TagsChanged.InvokeAsync(Tags);
     }
 
     private async Task RemoveTag(string tag)
     {
         Tags.Remove(tag);
         await TagsChanged.InvokeAsync(Tags);
+    }
+
+    private async Task<IJSObjectReference> GetModuleAsync() =>
+        _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/tag-input.js");
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+                await _module.InvokeVoidAsync("destroy", _hostId);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+
+        if (_module is not null)
+            await _module.DisposeAsync();
     }
 }

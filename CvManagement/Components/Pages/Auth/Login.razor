@@ -7,7 +7,7 @@
 
 <div class="card shadow-sm">
     <div class="card-body p-4">
-        <h3 class="card-title text-center mb-4">Sign In</h3>
+        <h3 class="card-title text-center mb-4">@Loc["Auth.SignIn"]</h3>
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
@@ -21,23 +21,23 @@
 
         <form @onsubmit="HandleLogin">
             <div class="mb-3">
-                <label class="form-label">Email</label>
+                <label class="form-label">@Loc["Auth.Email"]</label>
                 <input type="email" class="form-control" @bind="Email" required />
             </div>
             <div class="mb-3">
-                <label class="form-label">Password</label>
+                <label class="form-label">@Loc["Auth.Password"]</label>
                 <input type="password" class="form-control" @bind="Password" required />
             </div>
-            <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
+            <button type="submit" class="btn btn-primary w-100 mb-3">@Loc["Auth.SignIn"]</button>
         </form>
 
         <div class="d-flex gap-2 mt-2">
-            <a class="btn btn-outline-secondary w-100" href="/external-login/Google">Google</a>
-            <a class="btn btn-outline-secondary w-100" href="/external-login/GitHub">GitHub</a>
+            <a class="btn btn-outline-secondary w-100" href="/external-login/Google">@Loc["Auth.Google"]</a>
+            <a class="btn btn-outline-secondary w-100" href="/external-login/GitHub">@Loc["Auth.GitHub"]</a>
         </div>
 
         <div class="text-center mt-3">
-            <a href="/register">Create an account</a>
+            <a href="/register">@Loc["Auth.CreateAccount"]</a>
         </div>
     </div>
 </div>
@@ -52,26 +52,30 @@
     private string? QueryError =>
         error switch
         {
-            "provider-not-configured" => "Google/GitHub sign-in isn't configured yet.",
-            "external-failed" => "External sign-in failed. Try again.",
-            "no-email" => "Your account has no verified email.",
-            "account-failed" => "Could not create your account.",
-            "role-failed" => "Could not assign your role.",
-            "link-failed" => "Could not link the provider to your account.",
+            "provider-not-configured" => Loc["Auth.ExternalProviderNotConfigured"].Value,
+            "external-failed" => Loc["Auth.ExternalFailed"].Value,
+            "no-email" => Loc["Auth.NoEmail"].Value,
+            "account-failed" => Loc["Auth.AccountCreateFailed"].Value,
+            "role-failed" => Loc["Auth.RoleAssignFailed"].Value,
+            "link-failed" => Loc["Auth.LinkFailed"].Value,
             _ => null
         };
 
     private async Task HandleLogin()
     {
-        var result = await SignInManager.PasswordSignInAsync(Email, Password, true, lockoutOnFailure: false);
+        // lockoutOnFailure keeps an administrator's block effective: a blocked account is
+        // refused here rather than only being hidden in the admin table.
+        var result = await SignInManager.PasswordSignInAsync(Email, Password, true, lockoutOnFailure: true);
+
         if (result.Succeeded)
         {
             NavigationManager.NavigateTo("/", forceLoad: true);
+            return;
         }
-        else
-        {
-            ErrorMessage = "Invalid email or password.";
-        }
+
+        ErrorMessage = result.IsLockedOut
+            ? Loc["Auth.AccountBlocked"].Value
+            : Loc["Auth.InvalidCredentials"].Value;
     }
 
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;

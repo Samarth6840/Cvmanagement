@@ -4,13 +4,22 @@
 @using CvManagement.Services.Markdown
 @using CvManagement.Data.Entities.Attributes
 @using CvManagement.Data.Entities.Cv
+@using CvManagement.Data.Entities.Positions
+@attribute [Authorize]
 @inject ICvService CvService
 @inject ICurrentUserService CurrentUserService
 @inject IMarkdownRenderer MarkdownRenderer
+@inject NavigationManager Navigation
 
-@if (_cv is null)
+@if (_forbidden)
 {
-    <p>Loading...</p>
+    <h3>@Loc["Cv.NotAvailable"]</h3>
+    <p class="text-muted">@Loc["Cv.NoAccessToThis"]</p>
+    <a href="/cvs" class="btn btn-secondary">@Loc["Cv.BackToCvs"]</a>
+}
+else if (_cv is null)
+{
+    <p>@Loc["Common.Loading"]</p>
 }
 else
 {
@@ -23,23 +32,28 @@ else
         <div class="d-flex gap-2 align-items-center">
             <span class="badge @(_cv.Status == CvStatus.Published ? "bg-success" : "bg-warning") fs-6">@_cv.Status</span>
             <LikeButton CvRecordId="_cv.Id" />
+            @if (_canEdit)
+            {
+                <a href="/cvs/@_cv.Id/edit" class="btn btn-primary btn-sm">@Loc["Common.Edit"]</a>
+            }
         </div>
     </div>
 
-    @if (_definitions.Any())
+    @if (_rules.Count > 0)
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Attributes</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Cv.Attributes"]</h5></div>
             <div class="card-body">
-                @foreach (var def in _definitions)
+                @foreach (var rule in _rules)
                 {
+                    var def = rule.AttributeDefinition!;
                     var value = GetValue(def.Id);
-                    var unfilled = def.IsRequired && !CvService.IsValueFilled(value);
+                    var unfilled = !CvService.IsValueFilled(value);
                     <div class="mb-2">
-                        <strong>@def.Name:</strong>
+                        <strong>@def.Name@(rule.IsRequired ? " *" : ""):</strong>
                         @if (unfilled)
                         {
-                            <span class="text-danger fw-bold">(empty — required)</span>
+                            <span class="text-danger fw-bold">@Loc["Cv.Empty"]</span>
                         }
                         else if (def.DataType == AttributeDataType.Text && !string.IsNullOrEmpty(value?.TextValue))
                         {
@@ -62,7 +76,7 @@ else
     @if (_projects.Any())
     {
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Projects</h5></div>
+            <div class="card-header"><h5 class="mb-0">@Loc["Cv.Projects"]</h5></div>
             <div class="card-body">
                 @foreach (var proj in _projects)
                 {
@@ -84,27 +98,37 @@ else
     [Parameter] public string Id { get; set; } = "";
 
     private CvRecord? _cv;
-    private List<AttributeDefinition> _definitions = new();
-    private Dictionary<Guid, ProfileAttributeValue?> _values = new();
+    private bool _forbidden;
+    private bool _canEdit;
+    private List<PositionAttributeRule> _rules = new();
+    private Dictionary<Guid, ProfileAttributeValue> _values = new();
     private List<Project> _projects = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _cv = await CvService.GetByIdAsync(Guid.Parse(Id));
-        if (_cv is not null)
+        var cvId = Guid.Parse(Id);
+
+        // Recruiters get read-only access; candidates only their own CVs (spec §3.5/§3.6).
+        if (!await CvService.CanReadAsync(cvId))
         {
-            _definitions = await CvService.GetCvAttributeDefinitionsAsync(_cv.Id);
-            foreach (var def in _definitions)
-                _values[def.Id] = await CvService.GetCvAttributeValueAsync(_cv.Id, def.Id);
-            _projects = await CvService.GetCvProjectsAsync(_cv.Id);
+            _forbidden = true;
+            return;
         }
+
+        _cv = await CvService.GetByIdAsync(cvId);
+        if (_cv is null) return;
+
+        _canEdit = await CvService.CanEditAsync(cvId);
+        _rules = await CvService.GetCvAttributeRulesAsync(cvId);
+        _values = await CvService.GetCvAttributeValueMapAsync(cvId);
+        _projects = await CvService.GetCvProjectsAsync(cvId);
     }
 
-    private ProfileAttributeValue? GetValue(Guid id) => _values.TryGetValue(id, out var v) ? v : null;
+    private ProfileAttributeValue? GetValue(Guid id) => _values.GetValueOrDefault(id);
 
     private string GetValueDisplay(ProfileAttributeValue? v)
     {
-        if (v is null) return "";
+        if (v?.AttributeDefinition is null) return "";
         return v.AttributeDefinition.DataType switch
         {
             AttributeDataType.String => v.StringValue ?? "",

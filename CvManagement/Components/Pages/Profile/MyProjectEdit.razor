@@ -1,4 +1,5 @@
 @page "/my/projects/edit/{Id?}"
+@using CvManagement.Data
 @using CvManagement.Services.Projects
 @using CvManagement.Services.Auth
 @using CvManagement.Services.Profiles
@@ -104,16 +105,17 @@
 
     private void OnTagsChanged(List<string> tags) => _tags = tags;
 
+    // UtcDate keeps the DateTime kind UTC, which the project's timestamptz columns require.
     private void OnStartDateChanged(ChangeEventArgs e)
     {
-        if (_project is null) return;
-        _project.StartDate = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : null;
+        if (_project is not null)
+            _project.StartDate = UtcDate.FromInput(e.Value?.ToString());
     }
 
     private void OnEndDateChanged(ChangeEventArgs e)
     {
-        if (_project is null) return;
-        _project.EndDate = DateTime.TryParse(e.Value?.ToString(), out var d) ? d : null;
+        if (_project is not null)
+            _project.EndDate = UtcDate.FromInput(e.Value?.ToString());
     }
 
     private async Task Save()

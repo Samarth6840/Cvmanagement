@@ -56,10 +56,12 @@ public class SearchService : ISearchService
 
     private async Task<List<SearchResult>> SearchPositionsAsync(string query, bool isRecruiterOrAdmin)
     {
-        // Restricted positions are recruiter-only, so a candidate or anonymous search
-        // must not see them even when the text matches.
-        var visibilityFilter = isRecruiterOrAdmin ? "TRUE" : "p.\"IsPublic\" = TRUE";
-
+        // Restricted positions are recruiter-only, so a candidate or anonymous search must
+        // not see them even when the text matches.
+        //
+        // The flag is passed as a boolean *parameter*. Building this predicate as an
+        // interpolated string variable would send it to PostgreSQL as a text parameter and
+        // fail with "argument of AND must be type boolean, not type text".
         return await _db.Database
             .SqlQuery<SearchResult>($@"
                 SELECT {(int)SearchResultType.Position} AS ""Type"", p.""Id"", p.""Title"",
@@ -67,7 +69,7 @@ public class SearchService : ISearchService
                        ts_rank(p.""SearchVector"", plainto_tsquery('english', {query})) AS ""Rank""
                 FROM ""Positions"" p
                 WHERE p.""SearchVector"" @@ plainto_tsquery('english', {query})
-                  AND {visibilityFilter}
+                  AND ({isRecruiterOrAdmin} OR p.""IsPublic"" = TRUE)
                 ORDER BY ""Rank"" DESC
                 LIMIT {PositionResultLimit}")
             .ToListAsync();

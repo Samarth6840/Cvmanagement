@@ -1,3 +1,4 @@
+@using CvManagement.Data
 @using CvManagement.Data.Entities.Attributes
 
 @if (Attribute is not null)
@@ -103,25 +104,15 @@
             await NumericValueChanged.InvokeAsync(null);
     }
 
-    private async Task OnDateChanged(ChangeEventArgs e)
-    {
-        if (DateTime.TryParse(e.Value?.ToString(), out var val))
-            await DateValueChanged.InvokeAsync(val);
-        else
-            await DateValueChanged.InvokeAsync(null);
-    }
+    // UtcDate keeps the DateTime kind UTC, which the timestamptz columns require.
+    private async Task OnDateChanged(ChangeEventArgs e) =>
+        await DateValueChanged.InvokeAsync(UtcDate.FromInput(e.Value?.ToString()));
 
-    private async Task OnPeriodStartChanged(ChangeEventArgs e)
-    {
-        if (DateTime.TryParse(e.Value?.ToString(), out var val))
-            await PeriodStartChanged.InvokeAsync(val);
-    }
+    private async Task OnPeriodStartChanged(ChangeEventArgs e) =>
+        await PeriodStartChanged.InvokeAsync(UtcDate.FromInput(e.Value?.ToString()));
 
-    private async Task OnPeriodEndChanged(ChangeEventArgs e)
-    {
-        if (DateTime.TryParse(e.Value?.ToString(), out var val))
-            await PeriodEndChanged.InvokeAsync(val);
-    }
+    private async Task OnPeriodEndChanged(ChangeEventArgs e) =>
+        await PeriodEndChanged.InvokeAsync(UtcDate.FromInput(e.Value?.ToString()));
 
     private async Task OnBoolChanged(ChangeEventArgs e) =>
         await BoolValueChanged.InvokeAsync(e.Value is true);

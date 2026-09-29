@@ -52,6 +52,14 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 .AddEntityFrameworkStores<CvDbContext>()
 .AddDefaultTokenProviders();
 
+// Identity's defaults point at "/Account/Login", which this app does not have; every
+// protected page would dead-end on a 404. The pages here are /login and /access-denied.
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+});
+
 var authBuilder = builder.Services.AddAuthentication();
 
 var googleId = builder.Configuration["Authentication:Google:ClientId"];
@@ -268,6 +276,12 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await IdentitySeed.SeedAsync(scope.ServiceProvider);
     await AttributeSeed.SeedBuiltInAttributesAsync(scope.ServiceProvider);
+
+    // Sample content is on in Development (so a local run is not empty) and off elsewhere
+    // unless an operator opts in. It never touches a database that already has content.
+    var seedDemoData = builder.Configuration.GetValue<bool?>("Seed:DemoData")
+        ?? app.Environment.IsDevelopment();
+    await DemoDataSeed.SeedAsync(scope.ServiceProvider, seedDemoData);
 }
 
 app.Run();

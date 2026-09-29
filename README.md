@@ -23,6 +23,28 @@ dotnet run --project CvManagement            # applies migrations + seed, then s
 dotnet run --project CvManagement -- --selfcheck   # in-memory access-rule checks, no DB needed
 ```
 
+### Sample content
+
+Against an **empty** database in Development, a demo set is created so the app is not three
+empty tables. It never runs against a database that already has positions.
+
+| Account | Password | Role |
+|---|---|---|
+| `recruiter@demo.local` | `Demo1234!` | Recruiter |
+| `candidate@demo.local` | `Demo1234!` | Candidate |
+
+Included: 4 built-in attributes plus `IELTS Score`, `Remote Work Available`,
+`Presentation Skills` and a Markdown `Professional Summary`; 3 projects; 3 positions (two
+public, one Restricted by `IELTS Score > 6.5`); a published CV with a like and a draft CV;
+and 3 discussion posts. Sign in as the recruiter to see the CV list, likes and search; as the
+candidate to see the profile, projects and CV editing.
+
+Set `Seed:DemoData` to `true` to enable it outside Development, or `false` to disable it:
+
+```json
+{ "Seed": { "DemoData": false } }
+```
+
 Configuration lives in `appsettings.json` (or environment variables). Only the connection
 string is required to boot:
 
@@ -40,6 +62,7 @@ string is required to boot:
 | `Authentication:GitHub:ClientId` / `:ClientSecret` | GitHub sign-in. |
 | `Cloudinary:CloudName` / `:UploadPreset` | Drag-and-drop image upload. The preset must be an **unsigned** upload preset, because the browser posts the file straight to Cloudinary — see below. |
 | `Seed:AdminEmail` / `Seed:AdminPassword` | Creates the first administrator on startup. No default account ships. |
+| `Seed:DemoData` | Sample content. Defaults to on in Development, off otherwise. |
 
 `Cloudinary:ApiKey` / `:ApiSecret` are present for completeness but are not used by the
 upload path: an unsigned preset means the browser uploads directly to Cloudinary and only

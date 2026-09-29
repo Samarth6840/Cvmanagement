@@ -202,21 +202,32 @@ var externalSchemas = new Dictionary<string, string>(StringComparer.OrdinalIgnor
     ["GitHub"] = GitHubAuthenticationDefaults.AuthenticationScheme,
 };
 
-app.MapGet("/external-login/{provider}", (string provider, HttpContext ctx, IConfiguration config) =>
+app.MapGet("/external-login/{provider}", (string provider, IConfiguration config, string? returnUrl) =>
 {
     var scheme = externalSchemas.GetValueOrDefault(provider);
     var clientId = config[$"Authentication:{provider}:ClientId"];
     if (scheme is null || string.IsNullOrEmpty(clientId))
         return Results.Redirect("/login?error=provider-not-configured");
 
+    // The return target rides along so a social sign-in also lands back where the visitor
+    // was headed, exactly like the password form.
+    var callback = string.IsNullOrEmpty(returnUrl)
+        ? "/external-callback"
+        : $"/external-callback?returnUrl={Uri.EscapeDataString(returnUrl)}";
+
     return Results.Challenge(new AuthenticationProperties
     {
-        RedirectUri = "/external-callback"
+        RedirectUri = callback
     }, new[] { scheme });
 });
 
-app.MapGet("/external-callback", async (HttpContext ctx, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) =>
+app.MapGet("/external-callback", async (HttpContext ctx, string? returnUrl, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) =>
 {
+    // Only a path inside this app is honoured; an absolute URL would be an open redirect.
+    var target = !string.IsNullOrEmpty(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
+        ? returnUrl
+        : "/";
+
     var info = await signInManager.GetExternalLoginInfoAsync();
     if (info is null)
         return Results.Redirect("/login?error=external-failed");
@@ -225,19 +236,21 @@ app.MapGet("/external-callback", async (HttpContext ctx, UserManager<Application
     {
         var existing = await userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
         if (existing is not null)
-            return Results.Redirect("/");
+            return Results.LocalRedirect(target);
 
         var current = await userManager.GetUserAsync(ctx.User);
         if (current is null)
             return Results.Redirect("/login?error=external-failed");
 
         var link = await userManager.AddLoginAsync(current, info);
-        return Results.Redirect(link.Succeeded ? "/" : "/login?error=link-failed");
+        return link.Succeeded
+            ? Results.LocalRedirect(target)
+            : Results.Redirect("/login?error=link-failed");
     }
 
     var result = await signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
     if (result.Succeeded)
-        return Results.Redirect("/");
+        return Results.LocalRedirect(target);
 
     var email = info.Principal.FindFirstValue(ClaimTypes.Email);
     if (string.IsNullOrEmpty(email))
@@ -267,7 +280,7 @@ app.MapGet("/external-callback", async (HttpContext ctx, UserManager<Application
         return Results.Redirect("/login?error=link-failed");
 
     await signInManager.SignInAsync(user, isPersistent: false);
-    return Results.Redirect("/");
+    return Results.LocalRedirect(target);
 });
 
 using (var scope = app.Services.CreateScope())

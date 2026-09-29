@@ -32,9 +32,10 @@
                         <li><a class="dropdown-item" href="/cvs">@Loc["Nav.MyCvs"]</a></li>
                         <li><hr class="dropdown-divider" /></li>
                         <li>
-                            <form method="post" action="/logout">
-                                <button type="submit" class="dropdown-item">@Loc["TopBar.SignOut"]</button>
-                            </form>
+                            @* A link, not a form: this menu is rendered interactively, where an
+                               antiforgery token cannot be emitted, so a POST here is rejected with
+                               400 by UseAntiforgery. The /logout page itself does the sign-out. *@
+                            <a class="dropdown-item" href="/logout">@Loc["TopBar.SignOut"]</a>
                         </li>
                     </ul>
                 </div>

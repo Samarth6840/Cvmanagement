@@ -75,11 +75,11 @@
                 </div>
             }
             <div class="d-flex gap-2 mb-3">
-                <select class="form-select form-select-sm w-auto" @bind="_categoryFilter">
-                    <option value="">@Loc["Position.AllCategories"]</option>
-                    @foreach (var cat in Enum.GetValues<AttributeCategory>())
+                <select class="form-select form-select-sm w-auto" @bind="_categoryFilterId">
+                    <option value="0">@Loc["Position.AllCategories"]</option>
+                    @foreach (var category in _categories)
                     {
-                        <option value="@cat">@cat</option>
+                        <option value="@category.Id">@category.Name</option>
                     }
                 </select>
                 <select class="form-select form-select-sm" @bind="_selectedAttrId">
@@ -220,6 +220,7 @@
 
     private Position? _position;
     private List<AttributeDefinition> _allAttributes = [];
+    private List<AttributeCategory> _categories = [];
     private List<AttributeDefinition> _recentAttributes = [];
     private List<PositionAttributeRule> _attributeRules = [];
     private List<string> _tags = [];
@@ -228,16 +229,16 @@
     private bool _isNew;
     private string? _error;
     private string _selectedAttrId = "";
-    private string _categoryFilter = "";
+    private int _categoryFilterId;
     private string _selectedRuleAttrId = "";
     private string _ruleToRemoveAttrId = "";
     private PositionAccessOperator _selectedRuleOperator = PositionAccessOperator.Equals;
     private string _selectedRuleValue = "";
 
     private IEnumerable<AttributeDefinition> FilteredAttributes =>
-        string.IsNullOrEmpty(_categoryFilter)
+        _categoryFilterId == 0
             ? _allAttributes
-            : _allAttributes.Where(a => a.Category.ToString() == _categoryFilter);
+            : _allAttributes.Where(a => a.CategoryId == _categoryFilterId);
 
     // Image has no meaningful comparison in an access rule.
     private IEnumerable<AttributeDefinition> FilterableAttributes =>
@@ -260,6 +261,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _categories = await AttributeService.GetCategoriesAsync();
         _allAttributes = await AttributeService.GetAllAsync();
         _recentAttributes = await AttributeService.GetRecentlyUsedAsync(10);
         _knownTags = await PositionService.GetAllTagNamesAsync();

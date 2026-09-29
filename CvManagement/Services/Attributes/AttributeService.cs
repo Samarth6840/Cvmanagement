@@ -17,14 +17,23 @@ public class AttributeService : IAttributeService
     public Task<List<AttributeDefinition>> GetAllAsync() =>
         _db.AttributeDefinitions
             .AsNoTracking()
+            .Include(a => a.Category)
+            .Include(a => a.Options)
             .OrderBy(a => a.SortOrder)
             .ThenBy(a => a.Name)
+            .ToListAsync();
+
+    public Task<List<AttributeCategory>> GetCategoriesAsync() =>
+        _db.AttributeCategories
+            .AsNoTracking()
+            .OrderBy(c => c.SortOrder)
             .ToListAsync();
 
     public Task<AttributeDefinition?> GetByIdAsync(Guid id) =>
         _db.AttributeDefinitions
             .AsNoTracking()
             .Include(a => a.Options)
+            .Include(a => a.Category)
             .FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<AttributeDefinition> CreateAsync(AttributeDefinition attribute)
@@ -63,7 +72,7 @@ public class AttributeService : IAttributeService
 
         existing.Name = attribute.Name;
         existing.Slug = slug;
-        existing.Category = attribute.Category;
+        existing.CategoryId = attribute.CategoryId;
         existing.DataType = attribute.DataType;
         existing.Description = attribute.Description;
         existing.IsRequired = attribute.IsRequired;

@@ -9,6 +9,7 @@ public class CvDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, G
 {
     public CvDbContext(DbContextOptions<CvDbContext> options) : base(options) { }
 
+    public DbSet<AttributeCategory> AttributeCategories => Set<AttributeCategory>();
     public DbSet<AttributeDefinition> AttributeDefinitions => Set<AttributeDefinition>();
     public DbSet<AttributeOption> AttributeOptions => Set<AttributeOption>();
     public DbSet<CandidateProfile> CandidateProfiles => Set<CandidateProfile>();

@@ -12,10 +12,10 @@ public static class AttributeSeed
 {
     private static readonly AttributeDefinition[] BuiltInAttributes =
     [
-        new() { Name = "First Name", Category = AttributeCategory.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 0 },
-        new() { Name = "Last Name", Category = AttributeCategory.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 1 },
-        new() { Name = "Location", Category = AttributeCategory.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 2 },
-        new() { Name = "Personal Photo", Category = AttributeCategory.PersonalInformation, DataType = AttributeDataType.Image, SortOrder = 3 }
+        new() { Name = "First Name", CategoryId = AttributeCategoryCatalog.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 0 },
+        new() { Name = "Last Name", CategoryId = AttributeCategoryCatalog.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 1 },
+        new() { Name = "Location", CategoryId = AttributeCategoryCatalog.PersonalInformation, DataType = AttributeDataType.String, SortOrder = 2 },
+        new() { Name = "Personal Photo", CategoryId = AttributeCategoryCatalog.PersonalInformation, DataType = AttributeDataType.Image, SortOrder = 3 }
     ];
 
     /// <summary>

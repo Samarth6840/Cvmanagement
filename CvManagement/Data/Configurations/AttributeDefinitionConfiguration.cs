@@ -10,6 +10,7 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
     {
         b.HasKey(e => e.Id);
         b.HasIndex(e => e.IsBuiltIn);
+        b.HasIndex(e => e.CategoryId);
         b.HasIndex(e => e.Slug).IsUnique();
         b.HasIndex(e => e.Name).IsUnique();
         b.Property(e => e.Name).HasMaxLength(128);
@@ -21,5 +22,12 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
             .WithOne(o => o.AttributeDefinition)
             .HasForeignKey(o => o.AttributeDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Restrict, not cascade: deleting a category must not take its attributes with it.
+        // There is no category admin UI, so this only guards direct SQL.
+        b.HasOne(e => e.Category)
+            .WithMany(c => c.Attributes)
+            .HasForeignKey(e => e.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

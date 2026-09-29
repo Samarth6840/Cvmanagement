@@ -117,22 +117,7 @@
         <div class="card shadow-sm">
             <div class="card-header">@Loc["Home.Tags"]</div>
             <div class="card-body">
-                @if (_tags.Any())
-                {
-                    @* Spec §11: a tag opens CVs for a Recruiter and positions for a candidate. *@
-                    foreach (var (tag, count) in _tags)
-                    {
-                        <a href="/search?q=@Uri.EscapeDataString(tag)&type=@(_isRecruiter ? "cv" : "position")"
-                           class="badge rounded-pill text-bg-light me-1 mb-1"
-                           style="font-size: @(11 + Math.Min(count, 8))px">
-                            @tag <span class="opacity-50">@count</span>
-                        </a>
-                    }
-                }
-                else
-                {
-                    <span class="text-muted">@Loc["Home.NoTags"]</span>
-                }
+                <TagCloud Tags="_tags" LinksToCvs="_isRecruiter" />
                 <div class="text-muted small mt-2">
                     @if (_isRecruiter)
                     {
@@ -151,7 +136,7 @@
 @code {
     private List<Position> _latest = new();
     private List<Position> _popular = new();
-    private List<(string Tag, int Count)> _tags = new();
+    private IReadOnlyList<(string Tag, int Count)> _tags = [];
     private (int Positions, int Candidates, int Recruiters, int Cvs24h, int TotalCvs) _stats;
     private bool _isRecruiter;
 

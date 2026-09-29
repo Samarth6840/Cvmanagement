@@ -19,11 +19,11 @@
            placeholder="@Loc["Attribute.SearchPlaceholder"]"
            @bind="_searchPrefix" @bind:event="oninput" />
 
-    <select class="form-select form-select-sm w-auto" @bind="_selectedCategory">
-        <option value="">@Loc["Position.AllCategories"]</option>
-        @foreach (var cat in Enum.GetValues<AttributeCategory>())
+    <select class="form-select form-select-sm w-auto" @bind="_selectedCategoryId">
+        <option value="0">@Loc["Position.AllCategories"]</option>
+        @foreach (var category in _categories)
         {
-            <option value="@cat">@cat</option>
+            <option value="@category.Id">@category.Name</option>
         }
     </select>
 
@@ -69,7 +69,7 @@
                             <span class="badge text-bg-light ms-1">@Loc["Attribute.BuiltIn"]</span>
                         }
                     </td>
-                    <td>@attr.Category</td>
+                    <td>@attr.Category?.Name</td>
                     <td>@attr.DataType</td>
                     <td>@(attr.IsRequired ? Loc["Common.Yes"] : Loc["Common.No"])</td>
                 </tr>
@@ -85,22 +85,24 @@
 
 @code {
     private List<AttributeDefinition> _allAttributes = [];
+    private List<AttributeCategory> _categories = [];
     private HashSet<Guid> _selectedIds = [];
     private string _searchPrefix = "";
-    private string _selectedCategory = "";
+    private int _selectedCategoryId;
     private string? _error;
 
     private IEnumerable<AttributeDefinition> FilteredAttributes =>
         _allAttributes
             .Where(a => string.IsNullOrEmpty(_searchPrefix)
                         || a.Name.Contains(_searchPrefix, StringComparison.OrdinalIgnoreCase))
-            .Where(a => string.IsNullOrEmpty(_selectedCategory) || a.Category.ToString() == _selectedCategory);
+            .Where(a => _selectedCategoryId == 0 || a.CategoryId == _selectedCategoryId);
 
     private bool _allVisibleSelected =>
         FilteredAttributes.Any() && FilteredAttributes.All(a => _selectedIds.Contains(a.Id));
 
     protected override async Task OnInitializedAsync()
     {
+        _categories = await AttributeService.GetCategoriesAsync();
         _allAttributes = await AttributeService.GetAllAsync();
     }
 

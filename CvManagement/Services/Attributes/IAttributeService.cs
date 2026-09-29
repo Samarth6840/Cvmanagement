@@ -5,6 +5,9 @@ namespace CvManagement.Services.Attributes;
 public interface IAttributeService
 {
     Task<List<AttributeDefinition>> GetAllAsync();
+
+    /// <summary>The fixed category lookup list, for grouping and filtering in the UI only.</summary>
+    Task<List<AttributeCategory>> GetCategoriesAsync();
     Task<AttributeDefinition?> GetByIdAsync(Guid id);
     Task<AttributeDefinition> CreateAsync(AttributeDefinition attribute);
     Task<AttributeDefinition> UpdateAsync(Guid id, AttributeDefinition attribute, byte[] expectedVersion);

@@ -12,7 +12,9 @@ public class AttributeDefinition : IAuditable
     [MaxLength(128)]
     public string Slug { get; set; } = string.Empty;
 
-    public AttributeCategory Category { get; set; }
+    public int CategoryId { get; set; }
+
+    public AttributeCategory? Category { get; set; }
 
     public AttributeDataType DataType { get; set; }
 

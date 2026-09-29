@@ -25,10 +25,10 @@
                 </div>
                 <div class="col-md-3 mb-3">
                     <label class="form-label">@Loc["Common.Category"]</label>
-                    <select class="form-select" @bind="_attribute.Category">
-                        @foreach (var cat in Enum.GetValues<AttributeCategory>())
+                    <select class="form-select" @bind="_attribute.CategoryId">
+                        @foreach (var category in _categories)
                         {
-                            <option value="@cat">@cat</option>
+                            <option value="@category.Id">@category.Name</option>
                         }
                     </select>
                 </div>
@@ -83,16 +83,19 @@
 
     private AttributeDefinition? _attribute;
     private List<AttributeOption> _options = new();
+    private List<AttributeCategory> _categories = new();
     private bool _isNew;
     private string _newOptionLabel = "";
     private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
+        _categories = await AttributeService.GetCategoriesAsync();
+
         if (string.IsNullOrEmpty(Id) || Id == "new")
         {
             _isNew = true;
-            _attribute = new AttributeDefinition();
+            _attribute = new AttributeDefinition { CategoryId = _categories.FirstOrDefault()?.Id ?? 0 };
         }
         else
         {

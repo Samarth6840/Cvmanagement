@@ -149,7 +149,7 @@ else
                         <input type="text" class="form-control mb-2" placeholder="@Loc["Profile.SearchAttributes"]" @bind="_attrSearchPrefix" @bind:event="oninput" />
                         @foreach (var attr in FilteredAvailableAttributes)
                         {
-                            <button class="list-group-item list-group-item-action" @onclick="() => AddInfoAttribute(attr)">@attr.Name <small class="text-muted">(@attr.Category)</small></button>
+                            <button class="list-group-item list-group-item-action" @onclick="() => AddInfoAttribute(attr)">@attr.Name <small class="text-muted">(@attr.Category?.Name)</small></button>
                         }
                     </div>
                 </div>

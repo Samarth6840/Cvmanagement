@@ -80,6 +80,11 @@ the resulting URL is stored.
   ever see the URL (`wwwroot/js/image-upload.js`, `Components/Shared/ImageUpload.razor`).
 - **Full-text search** — PostgreSQL `tsvector` columns maintained by DB triggers, including
   one over `ProfileAttributeValues` so CV *content* is searchable.
+- **Attribute categories** — a seeded lookup table (`AttributeCategories`) referenced by
+  `category_id`. Categories are for grouping and filtering only; no logic depends on them and
+  there is no admin UI, but the table can be extended at the database level.
+- **Third-party components** — Markdig (render) + EasyMDE (edit) for Markdown, Tagify for tag
+  entry with autocomplete, and Cloudinary's upload widget for images.
 - **Deletion** — configured as database-level cascade; no manual row-by-row deletion loops.
 - **Tag writes** — diffed and saved in one round-trip (`PositionService.SetTagsAsync`).
 

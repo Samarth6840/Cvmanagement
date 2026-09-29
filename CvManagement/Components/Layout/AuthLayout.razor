@@ -1,6 +1,16 @@
 @inherits LayoutComponentBase
 
+@* Spec §12: search is reachable from the top of every page, including the sign-in and
+   registration screens, which do not use the main layout. *@
+
 <div class="auth-layout">
+    <header class="auth-layout-header">
+        <a class="auth-layout-brand" href="/">@Loc["TopBar.Brand"]</a>
+        <div class="auth-layout-search">
+            <SearchBar />
+        </div>
+    </header>
+
     <div class="auth-layout-inner">
         @Body
     </div>
@@ -10,13 +20,38 @@
     .auth-layout {
         min-height: 100vh;
         display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
+
+    .auth-layout-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+    }
+
+    .auth-layout-brand {
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+        font-size: 1.1rem;
+    }
+
+    .auth-layout-search {
+        flex: 1 1 16rem;
+        max-width: 24rem;
+    }
+
     .auth-layout-inner {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
         max-width: 420px;
+        margin: 0 auto;
         padding: 1rem;
     }
 </style>

@@ -45,17 +45,17 @@ public static class DemoDataSeed
         if (recruiter is null || candidate is null)
             return;
 
-        var ielts = NewAttribute("IELTS Score", AttributeCategory.DomainKnowledge, AttributeDataType.Numeric, 10,
+        var ielts = NewAttribute("IELTS Score", AttributeCategoryCatalog.DomainKnowledge, AttributeDataType.Numeric, 10,
             "Overall IELTS band score.");
-        var remoteWork = NewAttribute("Remote Work Available", AttributeCategory.SoftSkills, AttributeDataType.Boolean, 11,
+        var remoteWork = NewAttribute("Remote Work Available", AttributeCategoryCatalog.SoftSkills, AttributeDataType.Boolean, 11,
             "Whether the candidate can work remotely.");
-        var presentation = NewAttribute("Presentation Skills", AttributeCategory.SoftSkills, AttributeDataType.OneOfMany, 12,
+        var presentation = NewAttribute("Presentation Skills", AttributeCategoryCatalog.SoftSkills, AttributeDataType.OneOfMany, 12,
             "Self-assessed presentation level.");
 
         // A Markdown-formatted text attribute. It also gives the recruiter's CV search
         // something of the candidate's own to match on, since CV content is searched
         // through ProfileAttributeValues rather than through the CvRecords row.
-        var summary = NewAttribute("Professional Summary", AttributeCategory.DomainKnowledge, AttributeDataType.Text, 13,
+        var summary = NewAttribute("Professional Summary", AttributeCategoryCatalog.DomainKnowledge, AttributeDataType.Text, 13,
             "Markdown-formatted summary shown at the top of a CV.");
 
         var beginner = new AttributeOption { Label = "Beginner", SortOrder = 0 };
@@ -210,7 +210,7 @@ public static class DemoDataSeed
 
     private static AttributeDefinition NewAttribute(
         string name,
-        AttributeCategory category,
+        int categoryId,
         AttributeDataType dataType,
         int sortOrder,
         string description) =>
@@ -218,7 +218,7 @@ public static class DemoDataSeed
         {
             Name = name,
             Slug = AttributeSlug.FromName(name),
-            Category = category,
+            CategoryId = categoryId,
             DataType = dataType,
             Description = description,
             SortOrder = sortOrder

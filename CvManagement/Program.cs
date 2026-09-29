@@ -287,6 +287,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CvDbContext>();
     await db.Database.MigrateAsync();
+    await AttributeCategorySeed.SeedAsync(scope.ServiceProvider);
     await IdentitySeed.SeedAsync(scope.ServiceProvider);
     await AttributeSeed.SeedBuiltInAttributesAsync(scope.ServiceProvider);
 

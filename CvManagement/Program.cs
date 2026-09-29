@@ -99,7 +99,7 @@ builder.Services.AddScoped<CvManagement.Services.Admin.IAdminUserService, CvMana
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-const string CultureCookieName = ".CvManagement.Culture";
+const string CultureCookieName = ".AspNetCore.Culture";
 var supportedCultures = CvManagement.SupportedLanguages.All.Select(l => new CultureInfo(l.Code)).ToList();
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -151,7 +151,7 @@ app.MapPost("/culture/set", async (
     await antiforgery.ValidateRequestAsync(context);
 
     var code = CvManagement.SupportedLanguages.Normalize(culture);
-    context.Response.Cookies.Append(CultureCookieName, code, new CookieOptions
+    context.Response.Cookies.Append(CultureCookieName, CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(code)), new CookieOptions
     {
         Path = "/",
         HttpOnly = true,
